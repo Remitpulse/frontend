@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "RemitPulse — passkey-secured cross-border remittances on Stellar/Soroban.",
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "dev": "next dev",
     "dev:https": "next dev --experimental-https",
