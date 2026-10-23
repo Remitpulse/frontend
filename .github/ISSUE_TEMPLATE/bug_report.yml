@@ -1,0 +1,41 @@
+name: Bug report
+description: Something in the app is broken or behaving unexpectedly
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, including the affected screen/flow.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: Browser/OS, demo mode on/off, network (testnet/mainnet)
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console output / screenshots
+      render: shell
+    validations:
+      required: false
