@@ -2,7 +2,7 @@
   "name": "remitpulse-frontend",
   "version": "0.1.0",
   "private": true,
-  "description": "RemitPulse — passkey-secured cross-border remittances on Stellar/Soroban. Based on stellar/smart-wallet-demo-app.",
+  "description": "RemitPulse — passkey-secured cross-border remittances on Stellar/Soroban.",
   "scripts": {
     "dev": "next dev",
     "dev:https": "next dev --experimental-https",

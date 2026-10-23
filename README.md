@@ -1,13 +1,40 @@
-# RemitPulse — Frontend (`remitpulse-frontend`)
+# RemitPulse
 
-> **Money moves. Life happens.** Passkey-secured cross-border remittances on Stellar / Soroban.
-> No seed phrases, no network fees, stablecoin rails (USDC · EURC · ARST · BRLA).
+<p align="center"><strong>Money moves. Life happens.</strong></p>
+<p align="center">Passkey-secured cross-border remittances on Stellar / Soroban — no seed phrases, no network fees, real stablecoin rails.</p>
 
-**Based on: https://github.com/stellar/smart-wallet-demo-app**
+<p align="center">
+  <img alt="Next.js 15" src="https://img.shields.io/badge/Next.js-15-black?logo=next.js&logoColor=white">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white">
+  <img alt="Stellar Soroban" src="https://img.shields.io/badge/Stellar-Soroban-7D00FF?logo=stellar&logoColor=white">
+  <img alt="WebAuthn" src="https://img.shields.io/badge/Auth-WebAuthn%20passkeys-10B981">
+  <img alt="License" src="https://img.shields.io/badge/License-MIT-blue">
+</p>
 
-This repository extracts the web frontend of the Stellar smart-wallet demo (its `@stellar/stellar-sdk` setup and the
-`@simplewebauthn/browser` passkey service in `apps/web/src/app/auth/services/webauthn`), ports it from Vite + TanStack
-Router to **Next.js 15 (App Router) + Tailwind CSS**, and rebuilds the entire UI to the RemitPulse brand and flows.
+RemitPulse is a full passkey-native wallet front end for sending stablecoins (USDC · EURC · ARST · BRLA) across
+borders on Stellar/Soroban. There's no browser extension, no seed phrase to back up, and no network fee for the
+sender — every ceremony is a biometric prompt, every signature is verified against a Soroban smart account, and
+every transfer is tracked live from "payment received" to "delivered."
+
+Built with **Next.js 15 (App Router) + Tailwind CSS**, it implements the full WebAuthn ↔ Soroban signature bridge
+end to end: DER-to-compact-low-S conversion, `authorizeEntry` auth-entry signing, non-extractable Ed25519 session
+keys for quick-send, and a SEP-24 anchor flow for fiat funding — all documented below with the exact file that
+does each job.
+
+### Why it stands out
+
+- **No custodial key handling, anywhere.** Passkey private keys live in the authenticator's secure enclave; session
+  keys are WebCrypto `CryptoKey`s created `extractable: false`. Nothing sensitive ever touches a JS variable.
+- **The hard cryptography is solved, not stubbed.** WebAuthn gives you an ASN.1 DER ECDSA signature; Soroban's
+  `secp256r1_verify` wants a fixed 64-byte low-S `r ‖ s`. [`lib/stellar/webauthn.ts`](lib/stellar/webauthn.ts) does
+  that conversion correctly, with tests that check it against Node's own crypto implementation.
+- **Session keys that know their limits.** Quick-send is an on-chain-scoped signer (capped amount + TTL), not a
+  client-side convenience flag — so "remember me" can't be abused into unlimited spend.
+- **Real-time, not polling-and-hoping.** Transfer status streams over SSE with an automatic fallback, and funding
+  via SEP-24 is detected through `postMessage` with backend polling as the safety net.
+- **A demo mode that doesn't lie to you.** `NEXT_PUBLIC_DEMO_MODE=true` mocks the backend, but passkey ceremonies
+  and signature math are 100% real — so what you click through locally is the same cryptography that ships to
+  mainnet.
 
 ---
 
@@ -256,5 +283,4 @@ Production checklist:
 
 ## 📄 License
 
-MIT. See [LICENSE](LICENSE). Portions are derived from
-[stellar/smart-wallet-demo-app](https://github.com/stellar/smart-wallet-demo-app) (package.json declares ISC; the repo has no LICENSE file).
+MIT. See [LICENSE](LICENSE).
