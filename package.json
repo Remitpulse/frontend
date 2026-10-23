@@ -1,0 +1,31 @@
+{
+  "name": "remitpulse-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RemitPulse — passkey-secured cross-border remittances on Stellar/Soroban. Based on stellar/smart-wallet-demo-app.",
+  "scripts": {
+    "dev": "next dev",
+    "dev:https": "next dev --experimental-https",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@simplewebauthn/browser": "^14.0.0",
+    "@stellar/stellar-sdk": "^17.3.0",
+    "next": "^15.5.28",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "autoprefixer": "^10.6.1",
+    "postcss": "^8.5.31",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.5"
+  }
+}
