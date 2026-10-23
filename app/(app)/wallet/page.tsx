@@ -26,7 +26,7 @@ export default function WalletPage() {
   const loadBalance = () => {
     if (session) api.getBalance(session.contractId).then((b) => setBalance(b.amount), () => setBalance(null))
   }
-  useEffect(loadBalance, [session]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(loadBalance, [session])
 
   const start = async (kind: Flow['kind']) => {
     setStarting(kind)
