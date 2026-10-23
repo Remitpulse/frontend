@@ -12,6 +12,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
     "test": "vitest run"
   },
   "dependencies": {
@@ -22,10 +23,13 @@
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "autoprefixer": "^10.6.1",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.28",
     "postcss": "^8.5.31",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3",
