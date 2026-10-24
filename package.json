@@ -15,7 +15,17 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@simplewebauthn/browser": "^14.0.0",
@@ -31,6 +41,8 @@
     "@tailwindcss/postcss": "^4.3.3",
     "eslint": "^10.13.0",
     "eslint-config-next": "^16.4.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.6",
     "postcss": "^8.5.31",
     "prettier": "^3.9.10",
     "tailwindcss": "^4.3.3",
