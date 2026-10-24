@@ -2,6 +2,7 @@
   "name": "remitpulse-frontend",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "RemitPulse — passkey-secured cross-border remittances on Stellar/Soroban.",
   "engines": {
     "node": ">=20.9.0"
@@ -16,7 +17,17 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@simplewebauthn/browser": "^14.0.0",
@@ -33,6 +44,8 @@
     "@vitest/coverage-v8": "^5.0.5",
     "eslint": "^10.13.0",
     "eslint-config-next": "^16.4.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.6",
     "postcss": "^8.5.31",
     "prettier": "^3.9.10",
     "tailwindcss": "^4.3.3",
