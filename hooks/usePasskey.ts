@@ -18,6 +18,11 @@ import {
 
 export type PasskeyStatus = 'idle' | 'prompting' | 'verifying' | 'error'
 
+/** Validates a Soroban auth payload before it is used as a WebAuthn challenge. */
+export function assertSignablePayload(payload: Uint8Array): void {
+  if (payload.length !== 32) throw new Error('Soroban auth payload must be 32 bytes')
+}
+
 export interface PasskeyAssertion {
   credentialId: Uint8Array
   authenticatorData: Uint8Array
@@ -127,7 +132,7 @@ export function usePasskey() {
     (payload: Uint8Array): Promise<PasskeyAssertion> =>
       run(async () => {
         if (!session) throw new Error('Log in with your passkey first.')
-        if (payload.length !== 32) throw new Error('Soroban auth payload must be 32 bytes')
+        assertSignablePayload(payload)
 
         const response = await startAuthentication({
           optionsJSON: {
