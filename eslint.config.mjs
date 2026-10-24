@@ -1,16 +1,9 @@
-import { dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { FlatCompat } from '@eslint/eslintrc'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-})
+import nextCoreWebVitals from 'eslint-config-next/core-web-vitals'
+import nextTypescript from 'eslint-config-next/typescript'
 
 const eslintConfig = [
-  ...compat.extends('next/core-web-vitals', 'next/typescript'),
+  ...nextCoreWebVitals,
+  ...nextTypescript,
   {
     ignores: ['.next/**', 'node_modules/**', 'coverage/**', 'next-env.d.ts'],
   },
@@ -20,6 +13,12 @@ const eslintConfig = [
         'warn',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+      // These React Compiler rules landed as "error" with eslint-config-next 16.
+      // The flagged spots are intentional (one-time localStorage/sessionStorage
+      // reads on mount, countdown timers using Date.now()), not bugs, so keep
+      // them visible without failing the build.
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/purity': 'warn',
     },
   },
 ]
