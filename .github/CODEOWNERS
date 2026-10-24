@@ -1,0 +1,9 @@
+# Default owner for everything in the repo.
+# Replace @maintainer-handle with the actual GitHub username or team.
+* @maintainer-handle
+
+# Signing / crypto surface owners.
+# Uncomment and update once there is more than one regular contributor.
+# /lib/stellar/ @maintainer-handle
+# /hooks/usePasskey.ts @maintainer-handle
+# /hooks/useSessionKey.ts @maintainer-handle
