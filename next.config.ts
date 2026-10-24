@@ -18,7 +18,10 @@ const csp = [
 ].join('; ')
 
 const nextConfig: NextConfig = {
+  // Next 16 keeps reactStrictMode defaulting to true, but we set it explicitly
+  // so the behavior is stable across 15 → 16 upgrades.
   reactStrictMode: true,
+  // Next 16 still emits the X-Powered-By header by default; keep it disabled.
   poweredByHeader: false,
   async headers() {
     return [

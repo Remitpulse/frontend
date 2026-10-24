@@ -11,6 +11,43 @@ import { AUTH_TTL_LEDGERS, buildTokenTransfer, type AuthSigner } from '@/lib/ste
 import { describePasskeyError, usePasskey } from './usePasskey'
 import { useSessionKey } from './useSessionKey'
 
+/**
+ * Pure helpers backing `useSendTransfer`. Kept separate from the hook so the
+ * authorisation logic can be unit tested without a React renderer.
+ */
+
+/** Whether the transfer amount is within the session key's spending scope. */
+export function resolveWillUseSessionKey(
+  signerFor: (amount: number) => AuthSigner | null | undefined,
+  amount: string,
+): boolean {
+  return !!signerFor(Number(amount))
+}
+
+/** Picks the session signer when the amount is in scope, else the passkey signer. */
+export function selectSigner(
+  signerFor: (amount: number) => AuthSigner | null | undefined,
+  passkeySigner: AuthSigner,
+  amount: string,
+): { signer: AuthSigner; usedSessionKey: boolean } {
+  const sessionSigner = signerFor(Number(amount))
+  return { signer: sessionSigner ?? passkeySigner, usedSessionKey: !!sessionSigner }
+}
+
+/** TTL for the Soroban auth entry: deferred funding gets the longer window. */
+export function authTtlForFunding(funding: FundingSource): number {
+  return funding === 'partner' ? AUTH_TTL_LEDGERS.deferred : AUTH_TTL_LEDGERS.immediate
+}
+
+/**
+ * Demo mode has no deployed contracts; sign a payload bound to the quote so the
+ * real passkey ceremony and DER → r||s conversion still run end to end.
+ */
+export async function signDemoPayload(signer: AuthSigner, quoteId: string): Promise<string> {
+  const scVal = await signer(hash(new TextEncoder().encode(quoteId)))
+  return scVal.toXdr('base64')
+}
+
 export type SendPhase = 'idle' | 'authorizing' | 'submitting' | 'done' | 'error'
 
 /**
@@ -26,7 +63,7 @@ export function useSendTransfer() {
   const [error, setError] = useState<string | null>(null)
 
   const willUseSessionKey = useCallback(
-    (amount: string) => !!sessionKey.signerFor(Number(amount)),
+    (amount: string) => resolveWillUseSessionKey(sessionKey.signerFor, amount),
     [sessionKey],
   )
 
@@ -37,15 +74,15 @@ export function useSendTransfer() {
       setError(null)
       setPhase('authorizing')
       try {
-        const sessionSigner = sessionKey.signerFor(Number(quote.sendAmount))
-        const signer: AuthSigner = sessionSigner ?? passkey.signer
+        const { signer, usedSessionKey } = selectSigner(
+          sessionKey.signerFor,
+          passkey.signer,
+          quote.sendAmount,
+        )
 
         let signedXdr: string
         if (config.demoMode) {
-          // Demo mode has no deployed contracts; sign a payload bound to the quote so the
-          // real passkey ceremony and DER → r||s conversion still run end to end.
-          const scVal = await signer(hash(new TextEncoder().encode(quote.id)))
-          signedXdr = scVal.toXdr('base64')
+          signedXdr = await signDemoPayload(signer, quote.id)
         } else {
           signedXdr = await buildTokenTransfer({
             accountId: session.contractId,
@@ -53,7 +90,7 @@ export function useSendTransfer() {
             to: quote.payTo,
             amount: toBaseUnits(quote.sendAmount),
             signer,
-            ttlLedgers: input.funding === 'partner' ? AUTH_TTL_LEDGERS.deferred : AUTH_TTL_LEDGERS.immediate,
+            ttlLedgers: authTtlForFunding(input.funding),
           })
         }
 
@@ -64,7 +101,7 @@ export function useSendTransfer() {
           saveRecipient: input.saveRecipient,
           funding: input.funding,
           signedXdr,
-          signer: sessionSigner ? 'session' : 'passkey',
+          signer: usedSessionKey ? 'session' : 'passkey',
         })
         setPhase('done')
         return res

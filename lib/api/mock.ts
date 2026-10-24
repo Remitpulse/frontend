@@ -11,18 +11,18 @@ import type { CreateTransferRequest, Quote, Recipient, TransferStage, TransferSt
  * Rates, fees and references are sample values (see Figma handoff notes).
  */
 
-const SAMPLE_RATES: Record<SendCurrency, Record<ReceiveCurrency, number>> = {
+export const SAMPLE_RATES: Record<SendCurrency, Record<ReceiveCurrency, number>> = {
   USD: { MXN: 17.15, BRL: 5.42, ARS: 1012.5, EUR: 0.92 },
   EUR: { MXN: 18.64, BRL: 5.89, ARS: 1100.4, EUR: 1 },
 }
-const PARTNER_FEE = 1
+export const PARTNER_FEE = 1
 
-const STAGE_SECONDS = { received: 0, converted: 5, settling: 10, delivered: 18 }
+export const STAGE_SECONDS = { received: 0, converted: 5, settling: 10, delivered: 18 }
 
-const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
-const randomChallenge = () => bytesToBase64Url(crypto.getRandomValues(new Uint8Array(32)))
+export const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
+export const randomChallenge = () => bytesToBase64Url(crypto.getRandomValues(new Uint8Array(32)))
 
-interface StoredTransfer {
+export interface StoredTransfer {
   req: CreateTransferRequest
   quote: Quote
   createdAt: number
@@ -30,7 +30,7 @@ interface StoredTransfer {
   reference: string
 }
 
-const store = {
+export const store = {
   read(): Record<string, StoredTransfer> {
     try {
       return JSON.parse(sessionStorage.getItem('rp-demo-transfers') ?? '{}')
@@ -42,9 +42,9 @@ const store = {
     sessionStorage.setItem('rp-demo-transfers', JSON.stringify(v))
   },
 }
-const quotes = new Map<string, Quote>()
+export const quotes = new Map<string, Quote>()
 
-function buildQuote(sendAmount: string, sendCurrency: SendCurrency, receiveCurrency: ReceiveCurrency): Quote {
+export function buildQuote(sendAmount: string, sendCurrency: SendCurrency, receiveCurrency: ReceiveCurrency): Quote {
   const amount = Math.max(0, Number(sendAmount) || 0)
   const rate = SAMPLE_RATES[sendCurrency][receiveCurrency]
   const converted = Math.max(0, amount - PARTNER_FEE)
@@ -69,7 +69,7 @@ function buildQuote(sendAmount: string, sendCurrency: SendCurrency, receiveCurre
   return q
 }
 
-function statusFor(id: string, t: StoredTransfer): TransferStatus {
+export function statusFor(id: string, t: StoredTransfer): TransferStatus {
   const stageTimes: TransferStatus['stageTimes'] = { funding: new Date(t.createdAt).toISOString() }
   let stage: TransferStage = 'funding'
   if (t.fundedAt) {
@@ -103,20 +103,30 @@ function statusFor(id: string, t: StoredTransfer): TransferStatus {
   }
 }
 
-function bytesToHexStr(b: Uint8Array) {
+export function bytesToHexStr(b: Uint8Array) {
   return Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('')
 }
 
-const SAMPLE_RECIPIENTS: Recipient[] = [
+export const SAMPLE_RECIPIENTS: Recipient[] = [
   { id: 'r1', firstName: 'María', lastName: 'López', country: 'MX', payoutMethod: 'bank', bankName: 'BBVA México', accountNumber: '012180001234567890', mobile: '+52 55 1234 5678' },
   { id: 'r2', firstName: 'José', lastName: 'López', country: 'MX', payoutMethod: 'cash', mobile: '+52 55 8765 4321' },
   { id: 'r3', firstName: 'Ana', lastName: 'Costa', country: 'BR', payoutMethod: 'bank', bankName: 'Nubank', accountNumber: '26004512345678' },
 ]
 
-const SAMPLE_ACTIVITY: TransferSummary[] = [
+export const SAMPLE_ACTIVITY: TransferSummary[] = [
   { id: 'demo-2', recipientName: 'José López', initials: 'JL', amount: '250.00', currency: 'USD', date: 'Oct 12', method: 'Cash pickup', state: 'completed' },
   { id: 'demo-3', recipientName: 'Ana Costa', initials: 'AC', amount: '120.00', currency: 'USD', date: 'Oct 05', method: 'Bank transfer', state: 'completed' },
 ]
+
+/** Deterministic pseudo contract address derived from a passkey's public key. */
+export function contractIdForPublicKey(publicKeyHex: string): string {
+  return StrKey.encodeContract(hash(new TextEncoder().encode(publicKeyHex)))
+}
+
+/** Deterministic pseudo contract address derived from a credential id. */
+export function contractIdForCredentialId(credentialId: string): string {
+  return StrKey.encodeContract(hash(base64UrlToBytes(credentialId)))
+}
 
 export const mockApi: Api = {
   async registerOptions(displayName) {
@@ -135,7 +145,7 @@ export const mockApi: Api = {
   },
   async registerVerify({ response, publicKeyHex }) {
     // Deterministic pseudo contract address so the same passkey maps to the same "account".
-    const contractId = StrKey.encodeContract(hash(new TextEncoder().encode(publicKeyHex)))
+    const contractId = contractIdForPublicKey(publicKeyHex)
     extractP256PublicKey(response.response) // validates the key is present
     const displayName = localStorage.getItem('rp-display-name') ?? 'there'
     localStorage.setItem(`rp-demo-account:${response.id}`, JSON.stringify({ contractId, displayName }))
@@ -148,7 +158,7 @@ export const mockApi: Api = {
     const known = localStorage.getItem(`rp-demo-account:${response.id}`)
     const account = known
       ? (JSON.parse(known) as { contractId: string; displayName: string })
-      : { contractId: StrKey.encodeContract(hash(base64UrlToBytes(response.id))), displayName: 'there' }
+      : { contractId: contractIdForCredentialId(response.id), displayName: 'there' }
     return { token: 'demo', credentialId: response.id, ...account }
   },
 
