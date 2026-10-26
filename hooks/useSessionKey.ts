@@ -102,11 +102,25 @@ export function useSessionKey() {
   const [record, setRecord] = useState<SessionKeyRecord | null>(null)
   const [issuing, setIssuing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [now, setNow] = useState<number | null>(null)
 
   useEffect(() => {
+    if (!session) {
+      setRecord(null)
+      return
+    }
+    loadSessionKey(session.contractId).then(setRecord, () => setRecord(null))
     if (!session) return setRecord(null)
     loadSessionKeyRecord(session.contractId).then(setRecord)
   }, [session])
+
+  useEffect(() => {
+    if (!record) return
+    const tick = () => setNow(Date.now())
+    tick()
+    const i = setInterval(tick, 30_000)
+    return () => clearInterval(i)
+  }, [record])
 
   const issue = useCallback(async () => {
     if (!session) throw new Error('Log in first.')
