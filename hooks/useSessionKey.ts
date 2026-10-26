@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { hash } from '@stellar/stellar-sdk'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { api } from '@/lib/api/client'
+import { api, isTimeoutError } from '@/lib/api/client'
 import { config } from '@/lib/config'
 import {
   clearSessionKey,

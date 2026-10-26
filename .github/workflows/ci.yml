@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Typecheck, lint, test, build
+    name: Typecheck, lint, format, test, build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -40,6 +40,9 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Test coverage
+        run: npm run test:coverage
+
       - name: Build
         run: npm run build
 
@@ -49,6 +52,74 @@ jobs:
     # Only run once the Playwright E2E suite (with @axe-core/playwright
     # assertions on onboarding, send, review and dashboard flows) exists.
     if: ${{ hashFiles('playwright.config.ts', 'playwright.config.js', 'playwright.config.mjs') != '' }}
+  csp-guard:
+    name: CSP regression check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Assert script-src does not allow 'unsafe-inline'
+        run: |
+          node - <<'EOF'
+          const fs = require('fs');
+          const path = require('path');
+
+          const candidates = [
+            'next.config.ts',
+            'next.config.js',
+            'next.config.mjs',
+            'middleware.ts',
+            'middleware.js',
+            'src/middleware.ts',
+            'src/middleware.js',
+          ];
+
+          const files = candidates.filter((f) => fs.existsSync(path.resolve(f)));
+
+          if (files.length === 0) {
+            console.error('No CSP configuration files found (next.config.* / middleware.*).');
+            process.exit(1);
+          }
+
+          let failed = false;
+
+          for (const file of files) {
+            const content = fs.readFileSync(path.resolve(file), 'utf8');
+
+            // Find script-src directives, including those built up across
+            // template literals / concatenations. We scan the raw text for
+            // any `script-src` occurrence and inspect the surrounding window.
+            const scriptSrcRegex = /script-src/g;
+            let match;
+            while ((match = scriptSrcRegex.exec(content)) !== null) {
+              const window = content.slice(match.index, match.index + 400);
+              if (window.includes("'unsafe-inline'") || window.includes('"unsafe-inline"')) {
+                console.error(
+                  `::error file=${file}::script-src contains 'unsafe-inline' near offset ${match.index}`
+                );
+                failed = true;
+              }
+            }
+          }
+
+          if (failed) {
+            console.error("CSP regression: script-src must not include 'unsafe-inline'.");
+            process.exit(1);
+          }
+
+          console.log("CSP check passed: script-src does not include 'unsafe-inline'.");
+          EOF
+
+  e2e:
+    name: E2E (Playwright, demo mode)
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_DEMO_MODE: 'true'
     steps:
       - uses: actions/checkout@v7
 
@@ -68,6 +139,13 @@ jobs:
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report

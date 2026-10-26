@@ -22,9 +22,16 @@ const env = {
   sessionMax: process.env.NEXT_PUBLIC_SESSION_KEY_MAX_AMOUNT,
   sessionTtl: process.env.NEXT_PUBLIC_SESSION_KEY_TTL_MINUTES,
   demoMode: process.env.NEXT_PUBLIC_DEMO_MODE,
+  apiTimeoutMs: process.env.NEXT_PUBLIC_API_TIMEOUT_MS,
 }
 
 const network: StellarNetwork = env.network === 'mainnet' ? 'mainnet' : 'testnet'
+
+/** Parses a positive numeric env value, falling back to `fallback` when unset/invalid. */
+function positiveNumber(value: string | undefined, fallback: number): number {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
 
 const NETWORK_DEFAULTS = {
   testnet: {
@@ -67,6 +74,10 @@ export const config = {
     ttlMinutes: Number(env.sessionTtl ?? 30),
   },
   demoMode: env.demoMode === 'true',
+  /** Default request timeout for backend API calls (ms). */
+  apiTimeoutMs: positiveNumber(env.apiTimeoutMs, 20_000),
+  /** Longer timeout for slow endpoints such as SEP-24 and relay calls (ms). */
+  apiSlowTimeoutMs: positiveNumber(env.apiTimeoutMs, 20_000) * 2.25,
 } as const
 
 /** Fails fast in production when a required integration value is missing. */

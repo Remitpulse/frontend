@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { headers } from 'next/headers'
 import { Inter } from 'next/font/google'
 import { config } from '@/lib/config'
 import './globals.css'
@@ -23,7 +24,9 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const nonce = (await headers()).get('x-nonce') ?? undefined
+
   return (
     <html lang="en" className={inter.variable}>
       <body>
@@ -32,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             Demo mode · rates, fees and partner screens are sample data
           </div>
         )}
-        <Providers>{children}</Providers>
+        <Providers nonce={nonce}>{children}</Providers>
       </body>
     </html>
   )
