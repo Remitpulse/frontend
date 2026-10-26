@@ -31,11 +31,23 @@ export function useSessionKey() {
   const [record, setRecord] = useState<SessionKeyRecord | null>(null)
   const [issuing, setIssuing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [now, setNow] = useState<number | null>(null)
 
   useEffect(() => {
-    if (!session) return setRecord(null)
+    if (!session) {
+      setRecord(null)
+      return
+    }
     loadSessionKey(session.contractId).then(setRecord, () => setRecord(null))
   }, [session])
+
+  useEffect(() => {
+    if (!record) return
+    const tick = () => setNow(Date.now())
+    tick()
+    const i = setInterval(tick, 30_000)
+    return () => clearInterval(i)
+  }, [record])
 
   const issue = useCallback(async () => {
     if (!session) throw new Error('Log in first.')
@@ -94,7 +106,8 @@ export function useSessionKey() {
   return {
     supported: typeof window !== 'undefined' && supportsEd25519SessionKeys(),
     record,
-    active: !!record?.registered && record.expiresAt > Date.now(),
+    active: !!record?.registered && now !== null && record.expiresAt > now,
+    minutesLeft: record && now !== null ? Math.max(0, Math.round((record.expiresAt - now) / 60_000)) : 0,
     issuing,
     error,
     issue,

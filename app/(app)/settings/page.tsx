@@ -20,7 +20,7 @@ export default function SettingsPage() {
   const [confirmLogout, setConfirmLogout] = useState(false)
 
   if (!session) return null
-  const minutesLeft = sessionKey.record ? Math.max(0, Math.round((sessionKey.record.expiresAt - Date.now()) / 60_000)) : 0
+  const minutesLeft = sessionKey.minutesLeft
 
   return (
     <main className="mx-auto max-w-flow px-6 pb-8 pt-8 lg:pt-10">
