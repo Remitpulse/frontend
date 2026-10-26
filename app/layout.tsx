@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { headers } from 'next/headers'
 import { Inter } from 'next/font/google'
 import { config } from '@/lib/config'
 import './globals.css'
@@ -9,6 +10,11 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'sw
 export const metadata: Metadata = {
   title: { default: 'RemitPulse — Money moves. Life happens.', template: '%s · RemitPulse' },
   description: 'Send money home in moments with passkey security and zero hidden fees. Powered by Stellar.',
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/apple-icon.png',
+  },
+  manifest: '/manifest.webmanifest',
 }
 
 export const viewport: Viewport = {
@@ -18,7 +24,9 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const nonce = (await headers()).get('x-nonce') ?? undefined
+
   return (
     <html lang="en" className={inter.variable}>
       <body>
@@ -27,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             Demo mode · rates, fees and partner screens are sample data
           </div>
         )}
-        <Providers>{children}</Providers>
+        <Providers nonce={nonce}>{children}</Providers>
       </body>
     </html>
   )

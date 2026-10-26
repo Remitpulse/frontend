@@ -2,6 +2,7 @@ node_modules
 .next
 out
 coverage
+coverage/
 *.tsbuildinfo
 next-env.d.ts
 .env
@@ -9,3 +10,4 @@ next-env.d.ts
 .env.*.local
 certificates
 .DS_Store
+.husky/_

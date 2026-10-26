@@ -1,5 +1,8 @@
 import type { ReceiveCurrency } from '@/lib/stellar/assets'
 
+// NOTE: test/recipients.test.ts covers ACCOUNT_RULES validation (MXN CLABE,
+// BRL PIX, ARS CBU/CVU, EUR IBAN) and formatClabe grouping/truncation.
+
 interface AccountRule {
   label: string
   hint: string

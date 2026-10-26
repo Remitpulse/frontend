@@ -14,6 +14,8 @@ import {
 import { config } from '@/lib/config'
 import { getRpc } from './network'
 
+export { buildInvocation as __buildInvocationForTest }
+
 /**
  * Produces the `__check_auth` signature for a Soroban authorization payload.
  * `payload` is sha256(HashIdPreimage::SorobanAuthorization) — 32 bytes.
@@ -32,7 +34,7 @@ export const AUTH_TTL_LEDGERS = {
 // envelope with its own sponsored source account before fee-bumping.
 const SIMULATION_SOURCE = Keypair.random().publicKey()
 
-function buildInvocation(contractId: string, method: string, args: xdr.ScVal[]): Transaction {
+export function buildInvocation(contractId: string, method: string, args: xdr.ScVal[]): Transaction {
   return new TransactionBuilder(new Account(SIMULATION_SOURCE, '0'), {
     fee: '100',
     networkPassphrase: config.networkPassphrase,
@@ -44,7 +46,7 @@ function buildInvocation(contractId: string, method: string, args: xdr.ScVal[]):
     .build()
 }
 
-async function simulate(tx: Transaction) {
+export async function simulate(tx: Transaction) {
   const sim = await getRpc().simulateTransaction(tx)
   if (rpc.Api.isSimulationError(sim)) throw new Error(`Simulation failed: ${sim.error}`)
   if (rpc.Api.isSimulationRestore(sim)) {

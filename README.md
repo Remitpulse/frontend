@@ -4,7 +4,8 @@
 <p align="center">Passkey-secured cross-border remittances on Stellar / Soroban — no seed phrases, no network fees, real stablecoin rails.</p>
 
 <p align="center">
-  <img alt="Next.js 15" src="https://img.shields.io/badge/Next.js-15-black?logo=next.js&logoColor=white">
+  <a href="https://github.com/Remitpulse/frontend/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Remitpulse/frontend/actions/workflows/ci.yml/badge.svg"></a>
+  <img alt="Next.js 16" src="https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white">
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white">
   <img alt="Stellar Soroban" src="https://img.shields.io/badge/Stellar-Soroban-7D00FF?logo=stellar&logoColor=white">
   <img alt="WebAuthn" src="https://img.shields.io/badge/Auth-WebAuthn%20passkeys-10B981">
