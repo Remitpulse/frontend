@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { ArrowRightIcon, BankIcon, CashIcon, CheckCircleIcon, ClockIcon, ExternalIcon, ShieldIcon, XIcon } from '@/components/ui/Icons'
 import { Tag } from '@/components/ui/StatusPill'
-import { api } from '@/lib/api/client'
+import { api, ApiError } from '@/lib/api/client'
 import { cn } from '@/lib/cn'
 import { config } from '@/lib/config'
 
@@ -19,6 +19,10 @@ const USER_DONE = new Set([
 ])
 const FAILED = new Set(['error', 'expired', 'refunded', 'no_market', 'too_small', 'too_large'])
 const POLL_MS = 3_000
+/** SEP-24 endpoints may be slower than the default API timeout. */
+const SEP24_TIMEOUT_MS = 30_000
+/** Consecutive timeouts before we tell the user the anchor is slow. */
+const SLOW_AFTER_TIMEOUTS = 2
 
 export interface Sep24ModalProps {
   open: boolean
@@ -54,6 +58,7 @@ export function Sep24Modal(props: Sep24ModalProps) {
   const { open, url, sep24Id, onComplete, onClose } = props
   const [status, setStatus] = useState<string>('incomplete')
   const [popup, setPopup] = useState<Window | null>(null)
+  const [slow, setSlow] = useState(false)
   const closeRef = useRef<HTMLButtonElement>(null)
   const completed = useRef(false)
 
@@ -91,11 +96,18 @@ export function Sep24Modal(props: Sep24ModalProps) {
   useEffect(() => {
     if (!open || !url) return
     let t: ReturnType<typeof setTimeout>
+    let timeouts = 0
     const tick = async () => {
       try {
-        const s = await api.getSep24Status(sep24Id)
+        const s = await api.getSep24Status(sep24Id, { timeoutMs: SEP24_TIMEOUT_MS })
+        timeouts = 0
+        setSlow(false)
         handleStatus(s.status)
-      } catch {
+      } catch (err) {
+        if (err instanceof ApiError && err.code === 'timeout') {
+          timeouts += 1
+          if (timeouts >= SLOW_AFTER_TIMEOUTS) setSlow(true)
+        }
         /* transient; keep polling */
       }
       if (!completed.current) t = setTimeout(tick, POLL_MS)
@@ -107,6 +119,7 @@ export function Sep24Modal(props: Sep24ModalProps) {
   useEffect(() => {
     if (!open) return
     completed.current = false
+    setSlow(false)
     closeRef.current?.focus()
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     document.addEventListener('keydown', onKey)
@@ -180,7 +193,9 @@ export function Sep24Modal(props: Sep24ModalProps) {
               <DemoPartnerPortal
                 anchorName={props.anchorName}
                 onContinue={async () => {
-                  if (props.transferId) await api.completeDemoFunding(props.transferId)
+                  if (props.transferId) {
+                    await api.completeDemoFunding(props.transferId, { timeoutMs: SEP24_TIMEOUT_MS })
+                  }
                   handleStatus('pending_anchor')
                 }}
               />
@@ -196,6 +211,11 @@ export function Sep24Modal(props: Sep24ModalProps) {
                   ? 'Nothing was charged. Close this window to try again or pay from your wallet.'
                   : 'Your transfer updates automatically after payment.'}
               </p>
+              {slow && !FAILED.has(status) && (
+                <p className="mt-1 text-caption text-muted" role="status">
+                  Still waiting on the anchor… this is taking longer than usual.
+                </p>
+              )}
             </div>
           </div>
         </div>

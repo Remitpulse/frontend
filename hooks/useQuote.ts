@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api } from '@/lib/api/client'
+import { api, isTimeoutError } from '@/lib/api/client'
 import type { Quote } from '@/lib/api/types'
 import type { ReceiveCurrency, SendCurrency } from '@/lib/stellar/assets'
 
@@ -42,7 +42,15 @@ export function useQuote(params: { sendAmount: string; sendCurrency: SendCurrenc
       const q = await api.getQuote(params)
       if (id === requestId.current) setQuote(q)
     } catch (err) {
-      if (id === requestId.current) setError(err instanceof Error ? err.message : 'Could not get a quote.')
+      if (id === requestId.current) {
+        setError(
+          isTimeoutError(err)
+            ? 'The quote request timed out. Try again.'
+            : err instanceof Error
+              ? err.message
+              : 'Could not get a quote.',
+        )
+      }
     } finally {
       if (id === requestId.current) setLoading(false)
     }
