@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react'
 import { hash } from '@stellar/stellar-sdk'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { api } from '@/lib/api/client'
+import { api, isTimeoutError } from '@/lib/api/client'
 import type { CreateTransferResponse, FundingSource, Quote, Recipient } from '@/lib/api/types'
 import { config } from '@/lib/config'
 import { assetContractId, toBaseUnits } from '@/lib/stellar/assets'
@@ -106,8 +106,13 @@ export function useSendTransfer() {
         setPhase('done')
         return res
       } catch (err) {
-        setPhase('error')
-        setError(describePasskeyError(err))
+        if (isTimeoutError(err)) {
+          setPhase('idle')
+          setError('The transfer request timed out. Your money has not moved — please try again.')
+        } else {
+          setPhase('error')
+          setError(describePasskeyError(err))
+        }
         throw err
       }
     },

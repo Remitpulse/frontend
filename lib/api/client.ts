@@ -33,23 +33,67 @@ export function setAuthToken(token: string | null) {
   authToken = token
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${config.backendUrl}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-      ...init.headers,
-    },
-  })
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { message?: string; code?: string }
-    throw new ApiError(body.message ?? `Request failed (${res.status})`, res.status, body.code)
-  }
-  return res.status === 204 ? (undefined as T) : ((await res.json()) as T)
+const DEFAULT_TIMEOUT_MS = 20_000
+
+export interface RequestOptions extends RequestInit {
+  /** Per-call timeout override in milliseconds. Defaults to `config.apiTimeoutMs` (or 20s). */
+  timeoutMs?: number
 }
 
-const post = <T>(path: string, body?: unknown) => request<T>(path, { method: 'POST', body: JSON.stringify(body ?? {}) })
+/** True when `err` is an `ApiError` produced by a request timeout/abort. */
+export function isTimeoutError(err: unknown): boolean {
+  return err instanceof ApiError && err.code === 'timeout'
+}
+
+async function request<T>(path: string, init: RequestOptions = {}): Promise<T> {
+  const { timeoutMs, signal: callerSignal, ...rest } = init
+  const timeout = timeoutMs ?? (config as { apiTimeoutMs?: number }).apiTimeoutMs ?? DEFAULT_TIMEOUT_MS
+
+  const controller = new AbortController()
+  let timedOut = false
+  const timer = setTimeout(() => {
+    timedOut = true
+    controller.abort()
+  }, timeout)
+
+  // Combine caller-provided signal with our timeout signal where supported.
+  let signal: AbortSignal = controller.signal
+  if (callerSignal) {
+    const anyFn = (AbortSignal as unknown as { any?: (signals: AbortSignal[]) => AbortSignal }).any
+    if (typeof anyFn === 'function') {
+      signal = anyFn([callerSignal, controller.signal])
+    } else {
+      callerSignal.addEventListener('abort', () => controller.abort(), { once: true })
+    }
+  }
+
+  try {
+    const res = await fetch(`${config.backendUrl}${path}`, {
+      ...rest,
+      signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        ...rest.headers,
+      },
+    })
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { message?: string; code?: string }
+      throw new ApiError(body.message ?? `Request failed (${res.status})`, res.status, body.code)
+    }
+    return res.status === 204 ? (undefined as T) : ((await res.json()) as T)
+  } catch (err) {
+    if (timedOut || (err instanceof DOMException && err.name === 'AbortError')) {
+      throw new ApiError('Request timed out. Please try again.', 0, 'timeout')
+    }
+    throw err
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+const post = <T>(path: string, body?: unknown, options?: { timeoutMs?: number }) =>
+  request<T>(path, { method: 'POST', body: JSON.stringify(body ?? {}), ...options })
 
 /**
  * RemitPulse relay/backend contract. Endpoint shapes are documented in the README
