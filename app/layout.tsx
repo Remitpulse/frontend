@@ -10,6 +10,11 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'sw
 export const metadata: Metadata = {
   title: { default: 'RemitPulse — Money moves. Life happens.', template: '%s · RemitPulse' },
   description: 'Send money home in moments with passkey security and zero hidden fees. Powered by Stellar.',
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/apple-icon.png',
+  },
+  manifest: '/manifest.webmanifest',
 }
 
 export const viewport: Viewport = {
