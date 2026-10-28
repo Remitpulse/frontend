@@ -14,7 +14,10 @@ const P256_HALF_N = P256_N >> 1n
 // ─── base64url ──────────────────────────────────────────────────────────────
 
 export function base64UrlToBytes(input: string): Uint8Array {
-  const b64 = input.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(input.length / 4) * 4, '=')
+  const b64 = input
+    .replace(/-/g, '+')
+    .replace(/_/g, '/')
+    .padEnd(Math.ceil(input.length / 4) * 4, '=')
   const bin = atob(b64)
   const out = new Uint8Array(bin.length)
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)

@@ -26,7 +26,11 @@ export function FlowHeader({ title, backHref, step }: FlowHeaderProps) {
           <ChevronLeftIcon size={22} />
         </button>
         <h1 className="flex-1 text-lg font-semibold text-ink">{title}</h1>
-        <Link href="/help" className="rounded-full p-1.5 text-muted hover:text-ink" aria-label="Help">
+        <Link
+          href="/help"
+          className="rounded-full p-1.5 text-muted hover:text-ink"
+          aria-label="Help"
+        >
           <HelpIcon size={22} />
         </Link>
       </div>
@@ -35,9 +39,16 @@ export function FlowHeader({ title, backHref, step }: FlowHeaderProps) {
           <p className="text-[13px] text-muted">
             {step.current} of {step.total} · {step.label}
           </p>
-          <div className="mt-2 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${step.total}, 1fr)` }} aria-hidden="true">
+          <div
+            className="mt-2 grid gap-1.5"
+            style={{ gridTemplateColumns: `repeat(${step.total}, 1fr)` }}
+            aria-hidden="true"
+          >
             {Array.from({ length: step.total }, (_, i) => (
-              <span key={i} className={cn('h-[3px] rounded-full', i < step.current ? 'bg-royal' : 'bg-border')} />
+              <span
+                key={i}
+                className={cn('h-[3px] rounded-full', i < step.current ? 'bg-royal' : 'bg-border')}
+              />
             ))}
           </div>
         </div>

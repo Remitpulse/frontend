@@ -1,7 +1,9 @@
 export function formatMoney(amount: string | number, opts: { decimals?: number } = {}) {
   const n = typeof amount === 'string' ? Number(amount) : amount
   const d = opts.decimals ?? 2
-  return Number.isFinite(n) ? n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }) : '0.00'
+  return Number.isFinite(n)
+    ? n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })
+    : '0.00'
 }
 
 export function formatCountdown(seconds: number) {

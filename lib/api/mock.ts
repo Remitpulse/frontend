@@ -1,9 +1,21 @@
 import { StrKey, hash } from '@stellar/stellar-sdk'
 import { config } from '@/lib/config'
-import { CORRIDORS, SEND_OPTIONS, type ReceiveCurrency, type SendCurrency } from '@/lib/stellar/assets'
+import {
+  CORRIDORS,
+  SEND_OPTIONS,
+  type ReceiveCurrency,
+  type SendCurrency,
+} from '@/lib/stellar/assets'
 import { bytesToBase64Url, base64UrlToBytes, extractP256PublicKey } from '@/lib/stellar/webauthn'
 import type { Api } from './client'
-import type { CreateTransferRequest, Quote, Recipient, TransferStage, TransferStatus, TransferSummary } from './types'
+import type {
+  CreateTransferRequest,
+  Quote,
+  Recipient,
+  TransferStage,
+  TransferStatus,
+  TransferSummary,
+} from './types'
 
 /**
  * Demo backend used when NEXT_PUBLIC_DEMO_MODE=true. Passkey ceremonies still run
@@ -44,7 +56,11 @@ export const store = {
 }
 export const quotes = new Map<string, Quote>()
 
-export function buildQuote(sendAmount: string, sendCurrency: SendCurrency, receiveCurrency: ReceiveCurrency): Quote {
+export function buildQuote(
+  sendAmount: string,
+  sendCurrency: SendCurrency,
+  receiveCurrency: ReceiveCurrency,
+): Quote {
   const amount = Math.max(0, Number(sendAmount) || 0)
   const rate = SAMPLE_RATES[sendCurrency][receiveCurrency]
   const converted = Math.max(0, amount - PARTNER_FEE)
@@ -98,7 +114,10 @@ export function statusFor(id: string, t: StoredTransfer): TransferStatus {
       r.payoutMethod === 'cash'
         ? 'Cash pickup · MoneyGram'
         : `${r.bankName ?? 'Bank'} · •••• ${(r.accountNumber ?? '').replace(/\s/g, '').slice(-4)}`,
-    txHash: stage === 'settling' || delivered ? bytesToHexStr(hash(new TextEncoder().encode(id))) : undefined,
+    txHash:
+      stage === 'settling' || delivered
+        ? bytesToHexStr(hash(new TextEncoder().encode(id)))
+        : undefined,
     updatedAt: new Date().toISOString(),
   }
 }
@@ -108,14 +127,56 @@ export function bytesToHexStr(b: Uint8Array) {
 }
 
 export const SAMPLE_RECIPIENTS: Recipient[] = [
-  { id: 'r1', firstName: 'María', lastName: 'López', country: 'MX', payoutMethod: 'bank', bankName: 'BBVA México', accountNumber: '012180001234567890', mobile: '+52 55 1234 5678' },
-  { id: 'r2', firstName: 'José', lastName: 'López', country: 'MX', payoutMethod: 'cash', mobile: '+52 55 8765 4321' },
-  { id: 'r3', firstName: 'Ana', lastName: 'Costa', country: 'BR', payoutMethod: 'bank', bankName: 'Nubank', accountNumber: '26004512345678' },
+  {
+    id: 'r1',
+    firstName: 'María',
+    lastName: 'López',
+    country: 'MX',
+    payoutMethod: 'bank',
+    bankName: 'BBVA México',
+    accountNumber: '012180001234567890',
+    mobile: '+52 55 1234 5678',
+  },
+  {
+    id: 'r2',
+    firstName: 'José',
+    lastName: 'López',
+    country: 'MX',
+    payoutMethod: 'cash',
+    mobile: '+52 55 8765 4321',
+  },
+  {
+    id: 'r3',
+    firstName: 'Ana',
+    lastName: 'Costa',
+    country: 'BR',
+    payoutMethod: 'bank',
+    bankName: 'Nubank',
+    accountNumber: '26004512345678',
+  },
 ]
 
 export const SAMPLE_ACTIVITY: TransferSummary[] = [
-  { id: 'demo-2', recipientName: 'José López', initials: 'JL', amount: '250.00', currency: 'USD', date: 'Oct 12', method: 'Cash pickup', state: 'completed' },
-  { id: 'demo-3', recipientName: 'Ana Costa', initials: 'AC', amount: '120.00', currency: 'USD', date: 'Oct 05', method: 'Bank transfer', state: 'completed' },
+  {
+    id: 'demo-2',
+    recipientName: 'José López',
+    initials: 'JL',
+    amount: '250.00',
+    currency: 'USD',
+    date: 'Oct 12',
+    method: 'Cash pickup',
+    state: 'completed',
+  },
+  {
+    id: 'demo-3',
+    recipientName: 'Ana Costa',
+    initials: 'AC',
+    amount: '120.00',
+    currency: 'USD',
+    date: 'Oct 05',
+    method: 'Bank transfer',
+    state: 'completed',
+  },
 ]
 
 /** Deterministic pseudo contract address derived from a passkey's public key. */
@@ -148,11 +209,21 @@ export const mockApi: Api = {
     const contractId = contractIdForPublicKey(publicKeyHex)
     extractP256PublicKey(response.response) // validates the key is present
     const displayName = localStorage.getItem('rp-display-name') ?? 'there'
-    localStorage.setItem(`rp-demo-account:${response.id}`, JSON.stringify({ contractId, displayName }))
+    localStorage.setItem(
+      `rp-demo-account:${response.id}`,
+      JSON.stringify({ contractId, displayName }),
+    )
     return { token: 'demo', contractId, credentialId: response.id, displayName }
   },
   async loginOptions() {
-    return { options: { challenge: randomChallenge(), rpId: config.webauthn.rpId, userVerification: 'required', timeout: 60_000 } }
+    return {
+      options: {
+        challenge: randomChallenge(),
+        rpId: config.webauthn.rpId,
+        userVerification: 'required',
+        timeout: 60_000,
+      },
+    }
   },
   async loginVerify({ response }) {
     const known = localStorage.getItem(`rp-demo-account:${response.id}`)
@@ -197,11 +268,20 @@ export const mockApi: Api = {
     const d = new Date()
     const reference = `RP-${d.toISOString().slice(2, 10).replace(/-/g, '')}-${String(Math.floor(Math.random() * 9000) + 1000)}`
     const all = store.read()
-    all[id] = { req, quote, createdAt: Date.now(), fundedAt: req.funding === 'wallet' ? Date.now() : null, reference }
+    all[id] = {
+      req,
+      quote,
+      createdAt: Date.now(),
+      fundedAt: req.funding === 'wallet' ? Date.now() : null,
+      reference,
+    }
     store.write(all)
     return {
       transferId: id,
-      sep24: req.funding === 'partner' ? { id: `sep24_${id}`, url: null, anchorName: 'MoneyGram' } : undefined,
+      sep24:
+        req.funding === 'partner'
+          ? { id: `sep24_${id}`, url: null, anchorName: 'MoneyGram' }
+          : undefined,
     }
   },
   async getTransfer(id) {
@@ -213,7 +293,11 @@ export const mockApi: Api = {
 
   async startSep24({ kind }) {
     await delay(300)
-    return { id: `sep24_${kind}_${crypto.randomUUID().slice(0, 8)}`, url: null, anchorName: 'MoneyGram' }
+    return {
+      id: `sep24_${kind}_${crypto.randomUUID().slice(0, 8)}`,
+      url: null,
+      anchorName: 'MoneyGram',
+    }
   },
   async getSep24Status(id) {
     const t = store.read()[id.replace(/^sep24_/, '')]

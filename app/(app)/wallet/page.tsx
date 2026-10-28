@@ -21,7 +21,9 @@ export default function WalletPage() {
   const { session } = useAuth()
   const [asset, setAsset] = useState<AssetCode>('USDC')
   const balanceKey = session ? `balance:${session.contractId}` : null
-  const { data: balance, reload: reloadBalance } = useAsyncData(balanceKey, () => api.getBalance(session!.contractId).then((b) => b.amount))
+  const { data: balance, reload: reloadBalance } = useAsyncData(balanceKey, () =>
+    api.getBalance(session!.contractId).then((b) => b.amount),
+  )
   const [flow, setFlow] = useState<Flow | null>(null)
   const [starting, setStarting] = useState<Flow['kind'] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -46,11 +48,15 @@ export default function WalletPage() {
   return (
     <main className="mx-auto max-w-flow px-6 pb-8 pt-8 lg:pt-10">
       <h1 className="text-[26px] font-bold text-navy">Your wallet</h1>
-      <p className="mt-1 text-body text-muted">Stablecoins held by your passkey-secured smart account.</p>
+      <p className="mt-1 text-body text-muted">
+        Stablecoins held by your passkey-secured smart account.
+      </p>
 
       <Card className="mt-6 p-5">
         <p className="text-body text-muted">Available balance</p>
-        <p className="mt-1 text-[32px] font-bold text-navy">${balance ? formatMoney(balance) : '—'}</p>
+        <p className="mt-1 text-[32px] font-bold text-navy">
+          ${balance ? formatMoney(balance) : '—'}
+        </p>
         <button
           onClick={async () => {
             await navigator.clipboard.writeText(session.contractId)
@@ -67,20 +73,41 @@ export default function WalletPage() {
         <legend className="text-[15px] font-semibold text-ink">Asset</legend>
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {(Object.keys(STABLECOINS) as AssetCode[]).map((code) => (
-            <label key={code} className={`cursor-pointer rounded-control border px-3 py-2.5 text-center text-body font-medium ${asset === code ? 'border-royal bg-royal-soft text-royal' : 'border-border bg-white text-ink'}`}>
-              <input type="radio" name="asset" value={code} checked={asset === code} onChange={() => setAsset(code)} className="sr-only" />
+            <label
+              key={code}
+              className={`cursor-pointer rounded-control border px-3 py-2.5 text-center text-body font-medium ${asset === code ? 'border-royal bg-royal-soft text-royal' : 'border-border bg-white text-ink'}`}
+            >
+              <input
+                type="radio"
+                name="asset"
+                value={code}
+                checked={asset === code}
+                onChange={() => setAsset(code)}
+                className="sr-only"
+              />
               {code}
-              <span className="block text-caption font-normal text-muted">{STABLECOINS[code].fiat}</span>
+              <span className="block text-caption font-normal text-muted">
+                {STABLECOINS[code].fiat}
+              </span>
             </label>
           ))}
         </div>
       </fieldset>
 
       <div className="mt-6 space-y-3">
-        <Button icon={<PlusIcon />} loading={starting === 'deposit'} onClick={() => start('deposit')}>
+        <Button
+          icon={<PlusIcon />}
+          loading={starting === 'deposit'}
+          onClick={() => start('deposit')}
+        >
           Add money
         </Button>
-        <Button variant="secondary" icon={<SendIcon />} loading={starting === 'withdraw'} onClick={() => start('withdraw')}>
+        <Button
+          variant="secondary"
+          icon={<SendIcon />}
+          loading={starting === 'withdraw'}
+          onClick={() => start('withdraw')}
+        >
           Cash out to bank
         </Button>
       </div>
@@ -100,7 +127,10 @@ export default function WalletPage() {
           sep24Id={flow.id}
           url={flow.url}
           anchorName={flow.anchorName}
-          summary={{ amount: asset, counterparty: flow.kind === 'deposit' ? 'Your wallet' : 'Your bank' }}
+          summary={{
+            amount: asset,
+            counterparty: flow.kind === 'deposit' ? 'Your wallet' : 'Your bank',
+          }}
           onComplete={() => {
             setFlow(null)
             loadBalance()

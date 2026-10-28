@@ -20,9 +20,22 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean
 }
 
-export function Button({ variant = 'primary', icon, loading, className, children, disabled, ...props }: ButtonProps) {
+export function Button({
+  variant = 'primary',
+  icon,
+  loading,
+  className,
+  children,
+  disabled,
+  ...props
+}: ButtonProps) {
   return (
-    <button className={cn(base, variants[variant], className)} disabled={disabled || loading} aria-busy={loading} {...props}>
+    <button
+      className={cn(base, variants[variant], className)}
+      disabled={disabled || loading}
+      aria-busy={loading}
+      {...props}
+    >
       {loading ? <Spinner /> : null}
       <span>{children}</span>
       {!loading && icon}
@@ -56,7 +69,10 @@ export function Spinner({ className }: { className?: string }) {
     <span
       role="status"
       aria-label="Loading"
-      className={cn('inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent', className)}
+      className={cn(
+        'inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent',
+        className,
+      )}
     />
   )
 }

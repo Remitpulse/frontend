@@ -28,7 +28,10 @@ export default function RecipientsPage() {
 
       {items && items.length > 0 && (
         <div className="relative mt-5">
-          <SearchIcon size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
+          <SearchIcon
+            size={18}
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"
+          />
           <input
             type="search"
             value={query}
@@ -47,7 +50,9 @@ export default function RecipientsPage() {
           <SkeletonList count={4} />
         </div>
       ) : filtered.length === 0 ? (
-        <p className="mt-6 text-body text-muted">{items && items.length > 0 ? 'No recipients match your search.' : 'No recipients yet.'}</p>
+        <p className="mt-6 text-body text-muted">
+          {items && items.length > 0 ? 'No recipients match your search.' : 'No recipients yet.'}
+        </p>
       ) : (
         <ul className="animate-fade-in mt-4 divide-y divide-border">
           {filtered.map((r) => {
@@ -56,7 +61,13 @@ export default function RecipientsPage() {
               <li key={r.id}>
                 <Link
                   href="/send"
-                  onClick={() => update({ recipient: r, payoutMethod: r.payoutMethod, receiveCurrency: corridor?.currency ?? 'MXN' })}
+                  onClick={() =>
+                    update({
+                      recipient: r,
+                      payoutMethod: r.payoutMethod,
+                      receiveCurrency: corridor?.currency ?? 'MXN',
+                    })
+                  }
                   className="flex items-center gap-4 py-4"
                 >
                   <Avatar initials={initials(r.firstName, r.lastName)} />
@@ -65,7 +76,10 @@ export default function RecipientsPage() {
                       {r.firstName} {r.lastName}
                     </p>
                     <p className="text-caption text-muted">
-                      {r.payoutMethod === 'cash' ? 'Cash pickup' : `${r.bankName} · ${maskAccount(r.accountNumber)}`} · {corridor?.countryName}
+                      {r.payoutMethod === 'cash'
+                        ? 'Cash pickup'
+                        : `${r.bankName} · ${maskAccount(r.accountNumber)}`}{' '}
+                      · {corridor?.countryName}
                     </p>
                   </div>
                   <ChevronRightIcon className="text-muted" />

@@ -68,7 +68,12 @@ export function useSendTransfer() {
   )
 
   const send = useCallback(
-    async (input: { quote: Quote; recipient: Recipient; saveRecipient: boolean; funding: FundingSource }) => {
+    async (input: {
+      quote: Quote
+      recipient: Recipient
+      saveRecipient: boolean
+      funding: FundingSource
+    }) => {
       if (!session) throw new Error('Log in with your passkey first.')
       const { quote } = input
       setError(null)
@@ -119,5 +124,11 @@ export function useSendTransfer() {
     [session, sessionKey, passkey],
   )
 
-  return { send, phase, error, willUseSessionKey, isBusy: phase === 'authorizing' || phase === 'submitting' }
+  return {
+    send,
+    phase,
+    error,
+    willUseSessionKey,
+    isBusy: phase === 'authorizing' || phase === 'submitting',
+  }
 }

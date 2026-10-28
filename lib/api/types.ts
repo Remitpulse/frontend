@@ -81,7 +81,8 @@ export interface CreateTransferResponse {
 }
 
 export type TransferStage = 'funding' | 'received' | 'converted' | 'settling' | 'delivered'
-export type TransferState = 'awaiting_funding' | 'in_progress' | 'completed' | 'failed' | 'needs_attention'
+export type TransferState =
+  'awaiting_funding' | 'in_progress' | 'completed' | 'failed' | 'needs_attention'
 
 export interface TransferStatus {
   id: string

@@ -12,20 +12,37 @@ const STYLES: Record<TransferState, { label: string; className: string }> = {
 export function StatusPill({ state, className }: { state: TransferState; className?: string }) {
   const s = STYLES[state]
   return (
-    <span className={cn('inline-flex items-center rounded-full px-3 py-1 text-xs font-medium', s.className, className)}>
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full px-3 py-1 text-xs font-medium',
+        s.className,
+        className,
+      )}
+    >
       {s.label}
     </span>
   )
 }
 
-export function Tag({ children, tone = 'royal' }: { children: React.ReactNode; tone?: 'royal' | 'mint' | 'navy' }) {
+export function Tag({
+  children,
+  tone = 'royal',
+}: {
+  children: React.ReactNode
+  tone?: 'royal' | 'mint' | 'navy'
+}) {
   const tones = {
     royal: 'bg-royal-soft text-royal',
     mint: 'bg-mint-soft text-mint-dark',
     navy: 'bg-white/10 text-sky-200',
   }
   return (
-    <span className={cn('inline-flex items-center rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide', tones[tone])}>
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide',
+        tones[tone],
+      )}
+    >
       {children}
     </span>
   )

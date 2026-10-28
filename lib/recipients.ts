@@ -20,7 +20,14 @@ export const ACCOUNT_RULES: Record<ReceiveCurrency, AccountRule> = {
     hint: 'Find this number in your recipient’s banking app.',
     placeholder: '012 180 00123456789 0',
     validate: (v) => (/^\d{18}$/.test(digits(v)) ? null : 'Enter all 18 digits to continue.'),
-    banks: ['BBVA México', 'Banorte', 'Santander México', 'Citibanamex', 'HSBC México', 'Banco Azteca'],
+    banks: [
+      'BBVA México',
+      'Banorte',
+      'Santander México',
+      'Citibanamex',
+      'HSBC México',
+      'Banco Azteca',
+    ],
     dialCode: '+52',
   },
   BRL: {
@@ -43,7 +50,8 @@ export const ACCOUNT_RULES: Record<ReceiveCurrency, AccountRule> = {
     label: 'IBAN',
     hint: 'Starts with a two-letter country code.',
     placeholder: 'ES91 2100 0418 4502 0005 1332',
-    validate: (v) => (/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(digits(v).toUpperCase()) ? null : 'Enter a valid IBAN.'),
+    validate: (v) =>
+      /^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(digits(v).toUpperCase()) ? null : 'Enter a valid IBAN.',
     banks: ['Any SEPA bank'],
     dialCode: '+34',
   },

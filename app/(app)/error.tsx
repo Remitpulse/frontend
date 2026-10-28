@@ -1,19 +1,19 @@
-'use client';
+'use client'
 
-import Link from 'next/link';
-import { useEffect } from 'react';
+import Link from 'next/link'
+import { useEffect } from 'react'
 
 export default function AppError({
   error,
   reset,
 }: {
-  error: Error & { digest?: string };
-  reset: () => void;
+  error: Error & { digest?: string }
+  reset: () => void
 }) {
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error(error);
-  }, [error]);
+    console.error(error)
+  }, [error])
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 py-16 text-center">
@@ -36,12 +36,10 @@ export default function AppError({
           </svg>
         </div>
 
-        <h1 className="text-xl font-semibold text-navy-900">
-          Something went wrong
-        </h1>
+        <h1 className="text-xl font-semibold text-navy-900">Something went wrong</h1>
         <p className="mt-2 text-sm text-navy-600">
-          We hit an unexpected error while loading this page. Your transfers and
-          data are safe — please try again.
+          We hit an unexpected error while loading this page. Your transfers and data are safe —
+          please try again.
         </p>
 
         {error.digest ? (
@@ -67,5 +65,5 @@ export default function AppError({
         </div>
       </div>
     </div>
-  );
+  )
 }

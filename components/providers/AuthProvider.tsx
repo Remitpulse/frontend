@@ -1,6 +1,14 @@
 'use client'
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
 import { setAuthToken } from '@/lib/api/client'
 import type { Session } from '@/lib/api/types'
 import { clearSessionKey } from '@/lib/stellar/sessionKeys'
@@ -47,7 +55,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null)
   }, [])
 
-  const value = useMemo(() => ({ session, ready, signIn, signOut }), [session, ready, signIn, signOut])
+  const value = useMemo(
+    () => ({ session, ready, signIn, signOut }),
+    [session, ready, signIn, signOut],
+  )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 

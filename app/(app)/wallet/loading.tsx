@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from '@/components/ui/Skeleton'
 
 export default function WalletLoading() {
   return (
@@ -45,5 +45,5 @@ export default function WalletLoading() {
         <Skeleton className="h-12 w-full rounded-xl" />
       </div>
     </div>
-  );
+  )
 }

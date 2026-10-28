@@ -36,7 +36,9 @@ describe('derToCompactLowS', () => {
       const compact = derToCompactLowS(new Uint8Array(der))
       expect(compact).toHaveLength(64)
       expect(toBigInt(compact.slice(32))).toBeLessThanOrEqual(HALF_N)
-      expect(verify('sha256', msg, { key: publicKey, dsaEncoding: 'ieee-p1363' }, compact)).toBe(true)
+      expect(verify('sha256', msg, { key: publicKey, dsaEncoding: 'ieee-p1363' }, compact)).toBe(
+        true,
+      )
     }
   })
 
@@ -75,17 +77,33 @@ describe('extractP256PublicKey', () => {
   const expected = bytesToHex(new Uint8Array(Buffer.concat([Buffer.from([4]), x, y])))
 
   it('reads the uncompressed point from SPKI', () => {
-    expect(bytesToHex(extractP256PublicKey({ publicKey: bytesToBase64Url(new Uint8Array(spki)) }))).toBe(expected)
+    expect(
+      bytesToHex(extractP256PublicKey({ publicKey: bytesToBase64Url(new Uint8Array(spki)) })),
+    ).toBe(expected)
   })
 
   it('falls back to the COSE key in authenticatorData', () => {
     // rpIdHash(32) | flags | signCount(4) | aaguid(16) | credIdLen(2) | credId | COSE_Key
     const cose = Buffer.concat([
       Buffer.from([0xa5, 0x01, 0x02, 0x03, 0x26, 0x20, 0x01]),
-      Buffer.from([0x21, 0x58, 0x20]), x,
-      Buffer.from([0x22, 0x58, 0x20]), y,
+      Buffer.from([0x21, 0x58, 0x20]),
+      x,
+      Buffer.from([0x22, 0x58, 0x20]),
+      y,
     ])
-    const authData = Buffer.concat([Buffer.alloc(32), Buffer.from([0x45]), Buffer.alloc(4), Buffer.alloc(16), Buffer.from([0, 4]), Buffer.from([9, 9, 9, 9]), cose])
-    expect(bytesToHex(extractP256PublicKey({ authenticatorData: bytesToBase64Url(new Uint8Array(authData)) }))).toBe(expected)
+    const authData = Buffer.concat([
+      Buffer.alloc(32),
+      Buffer.from([0x45]),
+      Buffer.alloc(4),
+      Buffer.alloc(16),
+      Buffer.from([0, 4]),
+      Buffer.from([9, 9, 9, 9]),
+      cose,
+    ])
+    expect(
+      bytesToHex(
+        extractP256PublicKey({ authenticatorData: bytesToBase64Url(new Uint8Array(authData)) }),
+      ),
+    ).toBe(expected)
   })
 })

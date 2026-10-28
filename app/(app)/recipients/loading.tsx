@@ -8,10 +8,7 @@ export default function RecipientsLoading() {
 
       <div className="divide-y divide-navy-100 overflow-hidden rounded-2xl border border-navy-100 bg-white">
         {Array.from({ length: 5 }).map((_, index) => (
-          <div
-            key={index}
-            className="flex items-center gap-4 px-4 py-4 sm:px-6"
-          >
+          <div key={index} className="flex items-center gap-4 px-4 py-4 sm:px-6">
             <div className="h-12 w-12 shrink-0 animate-pulse rounded-full bg-navy-100" />
             <div className="flex min-w-0 flex-1 flex-col gap-2">
               <div className="h-4 w-1/3 animate-pulse rounded-md bg-navy-100" />
@@ -26,5 +23,5 @@ export default function RecipientsLoading() {
         <div className="h-11 w-full animate-pulse rounded-xl bg-navy-100" />
       </div>
     </div>
-  );
+  )
 }

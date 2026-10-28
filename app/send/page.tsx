@@ -7,11 +7,25 @@ import { FeeBreakdown } from '@/components/FeeBreakdown'
 import { FlowHeader, FlowPage } from '@/components/layout/FlowHeader'
 import { useTransferDraft } from '@/components/providers/TransferDraftProvider'
 import { Button } from '@/components/ui/Button'
-import { AlertIcon, ArrowRightIcon, BankIcon, CashIcon, CheckCircleIcon, CheckIcon, ClockIcon } from '@/components/ui/Icons'
+import {
+  AlertIcon,
+  ArrowRightIcon,
+  BankIcon,
+  CashIcon,
+  CheckCircleIcon,
+  CheckIcon,
+  ClockIcon,
+} from '@/components/ui/Icons'
 import { useQuote } from '@/hooks/useQuote'
 import { cn } from '@/lib/cn'
 import { formatCountdown, formatMoney } from '@/lib/format'
-import { CORRIDORS, SEND_OPTIONS, STABLECOINS, type ReceiveCurrency, type SendCurrency } from '@/lib/stellar/assets'
+import {
+  CORRIDORS,
+  SEND_OPTIONS,
+  STABLECOINS,
+  type ReceiveCurrency,
+  type SendCurrency,
+} from '@/lib/stellar/assets'
 
 /** 02 · Send money calculator. */
 export default function SendCalculatorPage() {
@@ -34,10 +48,18 @@ export default function SendCalculatorPage() {
 
   return (
     <FlowPage>
-      <FlowHeader title="Send money" backHref="/dashboard" step={{ current: 1, total: 3, label: 'Amount' }} />
+      <FlowHeader
+        title="Send money"
+        backHref="/dashboard"
+        step={{ current: 1, total: 3, label: 'Amount' }}
+      />
 
-      <h2 className="mt-6 text-[26px] font-bold leading-tight text-navy">A little goes a long way.</h2>
-      <p className="mt-2 text-body text-muted">Send to {corridor.countryName}, straight from your phone.</p>
+      <h2 className="mt-6 text-[26px] font-bold leading-tight text-navy">
+        A little goes a long way.
+      </h2>
+      <p className="mt-2 text-body text-muted">
+        Send to {corridor.countryName}, straight from your phone.
+      </p>
 
       <div className="mt-6 space-y-3">
         <CurrencyAmountInput
@@ -45,7 +67,11 @@ export default function SendCalculatorPage() {
           amount={draft.sendAmount}
           onAmountChange={(v) => update({ sendAmount: v })}
           currency={draft.sendCurrency}
-          options={SEND_OPTIONS.map((o) => ({ value: o.currency, country: o.country, label: `${o.currency} · ${o.asset}` }))}
+          options={SEND_OPTIONS.map((o) => ({
+            value: o.currency,
+            country: o.country,
+            label: `${o.currency} · ${o.asset}`,
+          }))}
           onCurrencyChange={(v) => update({ sendCurrency: v as SendCurrency })}
         />
         <CurrencyAmountInput
@@ -70,7 +96,9 @@ export default function SendCalculatorPage() {
             <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-mint-dark">
               <CheckIcon size={18} /> 1 {quote.sendCurrency} = {quote.rate} {quote.receiveCurrency}
             </span>
-            <span className="text-caption text-mint-dark">Rate locked · {formatCountdown(secondsLeft)}</span>
+            <span className="text-caption text-mint-dark">
+              Rate locked · {formatCountdown(secondsLeft)}
+            </span>
           </div>
         )}
         {expired && (
@@ -78,7 +106,9 @@ export default function SendCalculatorPage() {
             <ClockIcon size={20} className="mt-0.5 shrink-0" />
             <div className="flex-1">
               <p className="text-body font-semibold">Your rate has expired.</p>
-              <p className="text-caption">Refresh the quote and review the new amount before continuing.</p>
+              <p className="text-caption">
+                Refresh the quote and review the new amount before continuing.
+              </p>
             </div>
             <button onClick={refresh} className="text-[13px] font-semibold">
               Refresh quote →
@@ -97,7 +127,9 @@ export default function SendCalculatorPage() {
           <FeeBreakdown quote={quote} />
           <p className="mt-3 text-caption text-muted">
             Settles on Stellar as {STABLECOINS[sendOption.asset].code}
-            {quote.settlementAsset !== sendOption.asset && ` → ${STABLECOINS[quote.settlementAsset].code}`}.
+            {quote.settlementAsset !== sendOption.asset &&
+              ` → ${STABLECOINS[quote.settlementAsset].code}`}
+            .
           </p>
         </div>
       )}
@@ -134,7 +166,9 @@ export default function SendCalculatorPage() {
       >
         Continue to recipient
       </Button>
-      <p className="mt-3 text-center text-caption text-muted">You’ll review everything before sending.</p>
+      <p className="mt-3 text-center text-caption text-muted">
+        You’ll review everything before sending.
+      </p>
     </FlowPage>
   )
 }
@@ -156,13 +190,19 @@ function PayoutOption(props: {
       onClick={props.onSelect}
       className={cn(
         'relative rounded-control border p-4 text-left transition-colors disabled:opacity-40',
-        props.selected ? 'border-royal bg-royal-soft' : 'border-border bg-white hover:border-slate-300',
+        props.selected
+          ? 'border-royal bg-royal-soft'
+          : 'border-border bg-white hover:border-slate-300',
       )}
     >
       <span className={props.selected ? 'text-royal' : 'text-muted'}>{props.icon}</span>
-      {props.selected && <CheckCircleIcon size={20} className="absolute right-3 top-3 text-royal" />}
+      {props.selected && (
+        <CheckCircleIcon size={20} className="absolute right-3 top-3 text-royal" />
+      )}
       <p className="mt-3 text-body font-semibold text-ink">{props.title}</p>
-      <p className="mt-0.5 text-caption text-muted">{props.disabled ? 'Not available yet' : props.detail}</p>
+      <p className="mt-0.5 text-caption text-muted">
+        {props.disabled ? 'Not available yet' : props.detail}
+      </p>
     </button>
   )
 }

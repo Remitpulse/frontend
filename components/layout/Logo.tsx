@@ -7,7 +7,11 @@ export function Logo({ inverted, className }: { inverted?: boolean; className?: 
       <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-royal text-white">
         <SendIcon size={18} />
       </span>
-      <span className={cn('text-xl font-bold tracking-tight', inverted ? 'text-white' : 'text-navy')}>RemitPulse</span>
+      <span
+        className={cn('text-xl font-bold tracking-tight', inverted ? 'text-white' : 'text-navy')}
+      >
+        RemitPulse
+      </span>
     </span>
   )
 }

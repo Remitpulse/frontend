@@ -34,7 +34,11 @@ export const AUTH_TTL_LEDGERS = {
 // envelope with its own sponsored source account before fee-bumping.
 const SIMULATION_SOURCE = Keypair.random().publicKey()
 
-export function buildInvocation(contractId: string, method: string, args: xdr.ScVal[]): Transaction {
+export function buildInvocation(
+  contractId: string,
+  method: string,
+  args: xdr.ScVal[],
+): Transaction {
   return new TransactionBuilder(new Account(SIMULATION_SOURCE, '0'), {
     fee: '100',
     networkPassphrase: config.networkPassphrase,
@@ -50,7 +54,9 @@ export async function simulate(tx: Transaction) {
   const sim = await getRpc().simulateTransaction(tx)
   if (rpc.Api.isSimulationError(sim)) throw new Error(`Simulation failed: ${sim.error}`)
   if (rpc.Api.isSimulationRestore(sim)) {
-    throw new Error('Contract state needs restoring; ask the relay to restore the footprint and retry.')
+    throw new Error(
+      'Contract state needs restoring; ask the relay to restore the footprint and retry.',
+    )
   }
   return sim
 }
@@ -106,9 +112,19 @@ export async function signAndAssemble(params: {
 }
 
 /** Signs an unsigned invocation prepared by the backend (e.g. session-key `add_signer`). */
-export function signPreparedXdr(params: { xdr: string; accountId: string; signer: AuthSigner; ttlLedgers: number }) {
+export function signPreparedXdr(params: {
+  xdr: string
+  accountId: string
+  signer: AuthSigner
+  ttlLedgers: number
+}) {
   const tx = TransactionBuilder.fromXDR(params.xdr, config.networkPassphrase) as Transaction
-  return signAndAssemble({ tx, accountId: params.accountId, signer: params.signer, ttlLedgers: params.ttlLedgers })
+  return signAndAssemble({
+    tx,
+    accountId: params.accountId,
+    signer: params.signer,
+    ttlLedgers: params.ttlLedgers,
+  })
 }
 
 /** SAC `transfer(from, to, amount)` signed by the smart account. */
@@ -125,11 +141,19 @@ export function buildTokenTransfer(params: {
     new Address(params.to).toScVal(),
     nativeToScVal(params.amount, { type: 'i128' }),
   ])
-  return signAndAssemble({ tx, accountId: params.accountId, signer: params.signer, ttlLedgers: params.ttlLedgers })
+  return signAndAssemble({
+    tx,
+    accountId: params.accountId,
+    signer: params.signer,
+    ttlLedgers: params.ttlLedgers,
+  })
 }
 
 /** SAC `balance(id)` via read-only simulation. */
-export async function readTokenBalance(tokenContractId: string, accountId: string): Promise<bigint> {
+export async function readTokenBalance(
+  tokenContractId: string,
+  accountId: string,
+): Promise<bigint> {
   const tx = buildInvocation(tokenContractId, 'balance', [new Address(accountId).toScVal()])
   const sim = await simulate(tx)
   return sim.result?.retval ? scValToBigInt(sim.result.retval) : 0n

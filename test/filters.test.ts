@@ -3,9 +3,23 @@ import { filterRecipients, filterTransfers, summarizeByCurrency } from '@/lib/fi
 import type { Recipient, TransferSummary } from '@/lib/api/types'
 
 const RECIPIENTS: Recipient[] = [
-  { id: 'r1', firstName: 'María', lastName: 'López', country: 'MX', payoutMethod: 'bank', bankName: 'BBVA México' },
+  {
+    id: 'r1',
+    firstName: 'María',
+    lastName: 'López',
+    country: 'MX',
+    payoutMethod: 'bank',
+    bankName: 'BBVA México',
+  },
   { id: 'r2', firstName: 'José', lastName: 'López', country: 'MX', payoutMethod: 'cash' },
-  { id: 'r3', firstName: 'Ana', lastName: 'Costa', country: 'BR', payoutMethod: 'bank', bankName: 'Nubank' },
+  {
+    id: 'r3',
+    firstName: 'Ana',
+    lastName: 'Costa',
+    country: 'BR',
+    payoutMethod: 'bank',
+    bankName: 'Nubank',
+  },
 ]
 
 describe('filterRecipients', () => {
@@ -30,9 +44,36 @@ describe('filterRecipients', () => {
 })
 
 const TRANSFERS: TransferSummary[] = [
-  { id: 't1', recipientName: 'María López', initials: 'ML', amount: '500.00', currency: 'USD', date: 'Today', method: 'Bank transfer', state: 'in_progress' },
-  { id: 't2', recipientName: 'José López', initials: 'JL', amount: '250.00', currency: 'USD', date: 'Oct 12', method: 'Cash pickup', state: 'completed' },
-  { id: 't3', recipientName: 'Ana Costa', initials: 'AC', amount: '120.50', currency: 'EUR', date: 'Oct 05', method: 'Bank transfer', state: 'completed' },
+  {
+    id: 't1',
+    recipientName: 'María López',
+    initials: 'ML',
+    amount: '500.00',
+    currency: 'USD',
+    date: 'Today',
+    method: 'Bank transfer',
+    state: 'in_progress',
+  },
+  {
+    id: 't2',
+    recipientName: 'José López',
+    initials: 'JL',
+    amount: '250.00',
+    currency: 'USD',
+    date: 'Oct 12',
+    method: 'Cash pickup',
+    state: 'completed',
+  },
+  {
+    id: 't3',
+    recipientName: 'Ana Costa',
+    initials: 'AC',
+    amount: '120.50',
+    currency: 'EUR',
+    date: 'Oct 05',
+    method: 'Bank transfer',
+    state: 'completed',
+  },
 ]
 
 describe('filterTransfers', () => {
