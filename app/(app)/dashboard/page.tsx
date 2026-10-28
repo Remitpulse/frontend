@@ -11,7 +11,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { ButtonLink } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { ArrowRightIcon, PlusIcon, SendIcon } from '@/components/ui/Icons'
-import { ListSkeleton, Skeleton } from '@/components/ui/Skeleton'
+import { SkeletonCircle, SkeletonList } from '@/components/ui/Skeleton'
 import { useAsyncData } from '@/hooks/useAsyncData'
 import { api } from '@/lib/api/client'
 import { summarizeByCurrency } from '@/lib/filters'
@@ -75,7 +75,7 @@ export default function DashboardPage() {
         {recipientsLoading ? (
           <div className="mt-4 flex gap-6">
             {[0, 1, 2].map((i) => (
-              <Skeleton key={i} className="h-[52px] w-[52px] shrink-0 rounded-full" />
+              <SkeletonCircle key={i} size={52} />
             ))}
           </div>
         ) : (
@@ -128,7 +128,7 @@ export default function DashboardPage() {
           <ErrorState message={activityError} onRetry={reloadActivity} />
         ) : activityLoading ? (
           <div className="mt-2">
-            <ListSkeleton rows={3} />
+            <SkeletonList count={3} />
           </div>
         ) : activity && activity.length === 0 ? (
           <EmptyActivity />

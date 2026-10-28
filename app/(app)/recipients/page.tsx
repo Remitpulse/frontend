@@ -7,7 +7,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { ButtonLink } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { ChevronRightIcon, PlusIcon, SearchIcon } from '@/components/ui/Icons'
-import { ListSkeleton } from '@/components/ui/Skeleton'
+import { SkeletonList } from '@/components/ui/Skeleton'
 import { useAsyncData } from '@/hooks/useAsyncData'
 import { api } from '@/lib/api/client'
 import { filterRecipients } from '@/lib/filters'
@@ -44,7 +44,7 @@ export default function RecipientsPage() {
         <ErrorState message={error} onRetry={reload} />
       ) : loading ? (
         <div className="mt-4">
-          <ListSkeleton rows={4} />
+          <SkeletonList count={4} />
         </div>
       ) : filtered.length === 0 ? (
         <p className="mt-6 text-body text-muted">{items && items.length > 0 ? 'No recipients match your search.' : 'No recipients yet.'}</p>

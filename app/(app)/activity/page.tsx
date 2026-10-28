@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { ActivityList } from '@/components/ActivityList'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { SearchIcon } from '@/components/ui/Icons'
-import { ListSkeleton } from '@/components/ui/Skeleton'
+import { SkeletonList } from '@/components/ui/Skeleton'
 import { useAsyncData } from '@/hooks/useAsyncData'
 import { api } from '@/lib/api/client'
 import { cn } from '@/lib/cn'
@@ -61,7 +61,7 @@ export default function ActivityPage() {
         <ErrorState message={error} onRetry={reload} />
       ) : loading ? (
         <div className="mt-4">
-          <ListSkeleton rows={5} />
+          <SkeletonList count={5} />
         </div>
       ) : filtered.length === 0 ? (
         <p className="mt-6 text-body text-muted">{items && items.length > 0 ? 'No transfers match your search.' : 'No transfers yet.'}</p>
