@@ -1,461 +1,412 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, act, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
+// @vitest-environment jsdom
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, renderHook, waitFor } from '@testing-library/react'
 
 // ---------------------------------------------------------------------------
-// Mocks
+// Mocks — real import paths only. Each factory owns its vi.fn()s so there is
+// no hoisting hazard; tests configure behaviour via the imported mocks below.
 // ---------------------------------------------------------------------------
 
-const mockRegisterOptions = vi.fn();
-const mockRegisterVerify = vi.fn();
-const mockLoginOptions = vi.fn();
-const mockLoginVerify = vi.fn();
-
-vi.mock("@/lib/api/client", () => ({
+vi.mock('@/lib/api/client', () => ({
   api: {
-    registerOptions: (...args: unknown[]) => mockRegisterOptions(...args),
-    registerVerify: (...args: unknown[]) => mockRegisterVerify(...args),
-    loginOptions: (...args: unknown[]) => mockLoginOptions(...args),
-    loginVerify: (...args: unknown[]) => mockLoginVerify(...args),
+    registerOptions: vi.fn(),
+    registerVerify: vi.fn(),
+    loginOptions: vi.fn(),
+    loginVerify: vi.fn(),
   },
-}));
+}))
 
-const mockStartRegistration = vi.fn();
-const mockStartAuthentication = vi.fn();
+vi.mock('@simplewebauthn/browser', () => ({
+  WebAuthnError: class WebAuthnError extends Error {
+    code: string
+    constructor({ message, code }: { message: string; code: string }) {
+      super(message)
+      this.name = 'WebAuthnError'
+      this.code = code
+    }
+  },
+  browserSupportsWebAuthn: vi.fn(() => true),
+  startRegistration: vi.fn(),
+  startAuthentication: vi.fn(),
+}))
 
-vi.mock("@simplewebauthn/browser", () => ({
-  startRegistration: (...args: unknown[]) => mockStartRegistration(...args),
-  startAuthentication: (...args: unknown[]) => mockStartAuthentication(...args),
-}));
+vi.mock('@/components/providers/AuthProvider', () => ({
+  useAuth: vi.fn(),
+}))
 
-const mockSignPayload = vi.fn();
-const mockDescribePasskeyError = vi.fn();
+vi.mock('@/lib/config', () => ({
+  config: { webauthn: { rpId: 'example.com', rpName: 'RemitPulse' } },
+}))
 
-vi.mock("@/lib/stellar/webauthn", () => ({
-  signPayload: (...args: unknown[]) => mockSignPayload(...args),
-  describePasskeyError: (...args: unknown[]) => mockDescribePasskeyError(...args),
-}));
+vi.mock('@/lib/stellar/signatures', () => ({
+  webAuthnSignatureScVal: vi.fn(),
+}))
 
-const mockSignIn = vi.fn();
+vi.mock('@/lib/stellar/webauthn', () => ({
+  base64UrlToBytes: vi.fn((s: string) => new TextEncoder().encode(s)),
+  bytesToBase64Url: vi.fn((b: Uint8Array) => `b64url:${b.length}`),
+  bytesToHex: vi.fn(() => 'deadbeef'),
+  derToCompactLowS: vi.fn(() => new Uint8Array(64).fill(9)),
+  extractP256PublicKey: vi.fn(() => new Uint8Array(65).fill(4)),
+  verifyClientData: vi.fn(),
+}))
 
-vi.mock("@/components/providers/AuthProvider", () => ({
-  useAuth: () => ({
-    signIn: mockSignIn,
-  }),
-}));
+import { usePasskey } from '@/hooks/usePasskey'
+import { api } from '@/lib/api/client'
+import {
+  WebAuthnError,
+  browserSupportsWebAuthn,
+  startAuthentication,
+  startRegistration,
+} from '@simplewebauthn/browser'
+import { useAuth } from '@/components/providers/AuthProvider'
+import { webAuthnSignatureScVal } from '@/lib/stellar/signatures'
+import { verifyClientData } from '@/lib/stellar/webauthn'
 
-// Import after mocks are registered.
-import { usePasskey } from "@/hooks/usePasskey";
+const mockedRegisterOptions = vi.mocked(api.registerOptions)
+const mockedRegisterVerify = vi.mocked(api.registerVerify)
+const mockedLoginOptions = vi.mocked(api.loginOptions)
+const mockedLoginVerify = vi.mocked(api.loginVerify)
+const mockedStartRegistration = vi.mocked(startRegistration)
+const mockedStartAuthentication = vi.mocked(startAuthentication)
+const mockedBrowserSupportsWebAuthn = vi.mocked(browserSupportsWebAuthn)
+const mockedUseAuth = vi.mocked(useAuth)
+const mockedWebAuthnSignatureScVal = vi.mocked(webAuthnSignatureScVal)
+const mockedVerifyClientData = vi.mocked(verifyClientData)
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+const mockSignIn = vi.fn()
 
-const wrapper = ({ children }: { children: ReactNode }) => <>{children}</>;
+const SESSION = {
+  token: 'tok',
+  contractId: 'CCONTRACT',
+  credentialId: 'cred-1',
+  displayName: 'Ada',
+}
+
+const MOCK_SCVAL = { type: 'mockScVal' } as unknown as ReturnType<typeof webAuthnSignatureScVal>
+
+function makeOptions() {
+  return {
+    challenge: 'challenge',
+    rp: { name: 'RemitPulse' },
+    user: { id: 'user-id', name: 'ada', displayName: 'Ada' },
+    pubKeyCredParams: [{ type: 'public-key' as const, alg: -257 }],
+  }
+}
+
+function makeLoginOptions() {
+  return { challenge: 'challenge' }
+}
 
 function makeRegistrationResponse() {
   return {
-    id: "cred-id",
-    rawId: "cred-id",
-    type: "public-key",
-    response: {
-      clientDataJSON: "client-data",
-      attestationObject: "attestation",
-    },
-    clientExtensionResults: {},
-  };
+    id: 'cred-1',
+    response: { attestationObject: 'attestation', clientDataJSON: 'client-data' },
+  }
 }
 
 function makeAuthenticationResponse() {
   return {
-    id: "cred-id",
-    rawId: "cred-id",
-    type: "public-key",
+    id: 'cred-1',
     response: {
-      clientDataJSON: "client-data",
-      authenticatorData: "auth-data",
-      signature: "signature",
+      clientDataJSON: 'client-data',
+      authenticatorData: 'auth-data',
+      signature: 'signature',
     },
-    clientExtensionResults: {},
-  };
+  }
 }
 
-function makeOptions() {
-  return {
-    challenge: "challenge",
-    rp: { id: "example.com", name: "Example" },
-    user: { id: "user-id", name: "user", displayName: "User" },
-    pubKeyCredParams: [],
-  };
-}
+beforeEach(() => {
+  vi.clearAllMocks()
+  localStorage.clear()
+  mockedBrowserSupportsWebAuthn.mockReturnValue(true)
+  mockedUseAuth.mockReturnValue({
+    session: SESSION,
+    ready: true,
+    signIn: mockSignIn,
+    signOut: vi.fn(),
+  })
+  mockedWebAuthnSignatureScVal.mockReturnValue(MOCK_SCVAL)
+})
 
-// A valid 32-byte payload.
-const validPayload = new Uint8Array(32).fill(7);
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
-// DER-encoded ECDSA signature (with high-S) used to verify compact low-S conversion.
-// r = 0x01, s = 0x80 (high bit set -> high-S), wrapped in a DER SEQUENCE.
-const derSignature = new Uint8Array([
-  0x30, 0x08, // SEQUENCE, length 8
-  0x02, 0x01, 0x01, // INTEGER r = 1
-  0x02, 0x03, 0x00, 0x80, 0x01, // INTEGER s = 0x8001 (high-S)
-]);
+describe('usePasskey', () => {
+  describe('register', () => {
+    it('registers successfully, rewrites rp/pubKeyCredParams, and signs in', async () => {
+      const options = makeOptions()
+      const response = makeRegistrationResponse()
+      mockedRegisterOptions.mockResolvedValue({ options } as never)
+      mockedStartRegistration.mockResolvedValue(response as never)
+      mockedRegisterVerify.mockResolvedValue(SESSION as never)
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
+      const { result } = renderHook(() => usePasskey())
+      expect(result.current.status).toBe('idle')
 
-describe("usePasskey", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockDescribePasskeyError.mockImplementation((err: unknown) =>
-      err instanceof Error ? err.message : String(err),
-    );
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  describe("register", () => {
-    it("performs a successful registration and signs in", async () => {
-      const options = makeOptions();
-      const registrationResponse = makeRegistrationResponse();
-      const verifyResult = { userId: "user-1", token: "token-1" };
-
-      mockRegisterOptions.mockResolvedValue(options);
-      mockStartRegistration.mockResolvedValue(registrationResponse);
-      mockRegisterVerify.mockResolvedValue(verifyResult);
-      mockSignIn.mockResolvedValue(undefined);
-
-      const { result } = renderHook(() => usePasskey(), { wrapper });
-
-      expect(result.current.status).toBe("idle");
-      expect(result.current.error).toBeNull();
-
-      let returned: unknown;
+      let returned: unknown
       await act(async () => {
-        returned = await result.current.register("user@example.com");
-      });
+        returned = await result.current.register('Ada')
+      })
 
-      expect(mockRegisterOptions).toHaveBeenCalledWith("user@example.com");
-      expect(mockStartRegistration).toHaveBeenCalledWith({ optionsJSON: options });
-      expect(mockRegisterVerify).toHaveBeenCalledWith(registrationResponse);
-      expect(mockSignIn).toHaveBeenCalledWith(verifyResult);
-      expect(returned).toEqual(verifyResult);
+      expect(localStorage.getItem('rp-display-name')).toBe('Ada')
+      expect(mockedRegisterOptions).toHaveBeenCalledWith('Ada')
+      expect(mockedStartRegistration).toHaveBeenCalledWith({
+        optionsJSON: {
+          ...options,
+          rp: { ...options.rp, id: 'example.com' },
+          pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
+        },
+      })
+      expect(mockedRegisterVerify).toHaveBeenCalledWith({ response, publicKeyHex: 'deadbeef' })
+      expect(mockSignIn).toHaveBeenCalledWith(SESSION)
+      expect(returned).toEqual(SESSION)
+      expect(result.current.status).toBe('idle')
+      expect(result.current.error).toBeNull()
+    })
 
-      expect(result.current.status).toBe("success");
-      expect(result.current.error).toBeNull();
-    });
+    it('keeps an explicit rp.id from the server instead of the config fallback', async () => {
+      const options = { ...makeOptions(), rp: { id: 'server.example', name: 'RemitPulse' } }
+      mockedRegisterOptions.mockResolvedValue({ options } as never)
+      mockedStartRegistration.mockResolvedValue(makeRegistrationResponse() as never)
+      mockedRegisterVerify.mockResolvedValue(SESSION as never)
 
-    it("sets error state when the ceremony is rejected", async () => {
-      const options = makeOptions();
-      mockRegisterOptions.mockResolvedValue(options);
-      mockStartRegistration.mockRejectedValue(new Error("User cancelled"));
-      mockDescribePasskeyError.mockReturnValue("Registration was cancelled");
-
-      const { result } = renderHook(() => usePasskey(), { wrapper });
-
+      const { result } = renderHook(() => usePasskey())
       await act(async () => {
-        await expect(result.current.register("user@example.com")).rejects.toThrow(
-          "User cancelled",
-        );
-      });
+        await result.current.register('Ada')
+      })
 
-      expect(mockRegisterVerify).not.toHaveBeenCalled();
-      expect(mockSignIn).not.toHaveBeenCalled();
-      expect(mockDescribePasskeyError).toHaveBeenCalled();
-      expect(result.current.status).toBe("error");
-      expect(result.current.error).toBe("Registration was cancelled");
-    });
-
-    it("sets error state when registerOptions fails", async () => {
-      mockRegisterOptions.mockRejectedValue(new Error("network down"));
-      mockDescribePasskeyError.mockReturnValue("Network error");
-
-      const { result } = renderHook(() => usePasskey(), { wrapper });
-
-      await act(async () => {
-        await expect(result.current.register("user@example.com")).rejects.toThrow(
-          "network down",
-        );
-      });
-
-      expect(mockStartRegistration).not.toHaveBeenCalled();
-      expect(result.current.status).toBe("error");
-      expect(result.current.error).toBe("Network error");
-    });
-
-    it("sets error state when registerVerify fails", async () => {
-      const options = makeOptions();
-      mockRegisterOptions.mockResolvedValue(options);
-      mockStartRegistration.mockResolvedValue(makeRegistrationResponse());
-      mockRegisterVerify.mockRejectedValue(new Error("verify failed"));
-      mockDescribePasskeyError.mockReturnValue("Verification failed");
-
-      const { result } = renderHook(() => usePasskey(), { wrapper });
-
-      await act(async () => {
-        await expect(result.current.register("user@example.com")).rejects.toThrow(
-          "verify failed",
-        );
-      });
-
-      expect(mockSignIn).not.toHaveBeenCalled();
-      expect(result.current.status).toBe("error");
-      expect(result.current.error).toBe("Verification failed");
-    });
-  });
-
-  describe("login", () => {
-    it("performs a successful login and signs in", async () => {
-      const options = makeOptions();
-      const authenticationResponse = makeAuthenticationResponse();
-      const verifyResult = { userId: "user-1", token: "token-2" };
-
-      mockLoginOptions.mockResolvedValue(options);
-      mockStartAuthentication.mockResolvedValue(authenticationResponse);
-      mockLoginVerify.mockResolvedValue(verifyResult);
-      mockSignIn.mockResolvedValue(undefined);
-
-      const { result } = renderHook(() => usePasskey(), { wrapper });
-
-      let returned: unknown;
-      await act(async () => {
-        returned = await result.current.login("user@example.com");
-      });
-
-      expect(mockLoginOptions).toHaveBeenCalledWith("user@example.com");
-      expect(mockStartAuthentication).toHaveBeenCalledWith({ optionsJSON: options });
-      expect(mockLoginVerify).toHaveBeenCalledWith(authenticationResponse);
-      expect(mockSignIn).toHaveBeenCalledWith(verifyResult);
-      expect(returned).toEqual(verifyResult);
-
-      expect(result.current.status).toBe("success");
-      expect(result.current.error).toBeNull();
-    });
-
-    it("sets error state when the login ceremony is rejected", async () => {
-      mockLoginOptions.mockResolvedValue(makeOptions());
-      mockStartAuthentication.mockRejectedValue(new Error("NotAllowedError"));
-      mockDescribePasskeyError.mockReturnValue("Login was cancelled");
-
-      const { result } = renderHook(() => usePasskey(), { wrapper });
-
-      await act(async () => {
-        await expect(result.current.login("user@example.com")).rejects.toThrow(
-          "NotAllowedError",
-        );
-      });
-
-      expect(mockLoginVerify).not.toHaveBeenCalled();
-      expect(mockSignIn).not.toHaveBeenCalled();
-      expect(result.current.status).toBe("error");
-      expect(result.current.error).toBe("Login was cancelled");
-    });
-
-    it("sets error state when loginVerify fails", async () => {
-      mockLoginOptions.mockResolvedValue(makeOptions());
-      mockStartAuthentication.mockResolvedValue(makeAuthenticationResponse());
-      mockLoginVerify.mockRejectedValue(new Error("bad signature"));
-      mockDescribePasskeyError.mockReturnValue("Invalid credentials");
-
-      const { result } = renderHook(() => usePasskey(), { wrapper });
-
-      await act(async () => {
-        await expect(result.current.login("user@example.com")).rejects.toThrow(
-          "bad signature",
-        );
-      });
-
-      expect(mockSignIn).not.toHaveBeenCalled();
-      expect(result.current.status).toBe("error");
-      expect(result.current.error).toBe("Invalid credentials");
-    });
-  });
-
-  describe("signPayload", () => {
-    it("signs a valid 32-byte payload and returns scVal", async () => {
-      const scVal = { type: "scvBytes", value: "deadbeef" };
-      mockSignPayload.mockResolvedValue({
-        signature: derSignature,
-        scVal,
-      });
-
-      const { result } = renderHook(() => usePasskey(), { wrapper });
-
-      let returned: unknown;
-      await act(async () => {
-        returned = await result.current.signPayload(validPayload);
-      });
-
-      expect(mockSignPayload).toHaveBeenCalledTimes(1);
-      const callArg = mockSignPayload.mock.calls[0][0];
-      expect(callArg).toBeInstanceOf(Uint8Array);
-      expect((callArg as Uint8Array).length).toBe(32);
-      expect(returned).toEqual(scVal);
-      expect(result.current.status).toBe("success");
-      expect(result.current.error).toBeNull();
-    });
-
-    it("rejects a payload that is not 32 bytes", async () => {
-      const { result } = renderHook(() => usePasskey(), { wrapper });
-
-      const badPayload = new Uint8Array(16);
-
-      await act(async () => {
-        await expect(result.current.signPayload(badPayload)).rejects.toThrow();
-      });
-
-      expect(mockSignPayload).not.toHaveBeenCalled();
-      expect(result.current.status).toBe("error");
-      expect(result.current.error).toBeTruthy();
-    });
-
-    it("converts DER signature to compact low-S form", async () => {
-      const scVal = { type: "scvBytes", value: "cafe" };
-      mockSignPayload.mockResolvedValue({
-        signature: derSignature,
-        scVal,
-      });
-
-      const { result } = renderHook(() => usePasskey(), { wrapper });
-
-      await act(async () => {
-        await result.current.signPayload(validPayload);
-      });
-
-      // The hook should hand the raw DER signature to signPayload (which is
-      // responsible for the DER -> compact low-S conversion). Verify the
-      // returned scVal is surfaced and that the signature passed through is
-      // the DER-encoded one.
-      const callArg = mockSignPayload.mock.calls[0][0];
-      expect(callArg).toBeInstanceOf(Uint8Array);
-      expect(result.current.status).toBe("success");
-    });
-
-    it("sets error state when signing fails", async () => {
-      mockSignPayload.mockRejectedValue(new Error("signing failed"));
-      mockDescribePasskeyError.mockReturnValue("Signing failed");
-
-      const { result } = renderHook(() => usePasskey(), { wrapper });
-
-      await act(async () => {
-        await expect(result.current.signPayload(validPayload)).rejects.toThrow(
-          "signing failed",
-        );
-      });
-
-      expect(result.current.status).toBe("error");
-      expect(result.current.error).toBe("Signing failed");
-    });
-
-    it("errors when there is no active session", async () => {
-      // Simulate the hook reporting no session by having signPayload reject
-      // with a session error, and describePasskeyError mapping it.
-      mockSignPayload.mockRejectedValue(new Error("No active session"));
-      mockDescribePasskeyError.mockReturnValue("No active session");
-
-      const { result } = renderHook(() => usePasskey(), { wrapper });
-
-      await act(async () => {
-        await expect(result.current.signPayload(validPayload)).rejects.toThrow(
-          "No active session",
-        );
-      });
-
-      expect(result.current.status).toBe("error");
-      expect(result.current.error).toBe("No active session");
-    });
-  });
-
-  describe("browser support", () => {
-    it("reports unsupported browser when WebAuthn is unavailable", async () => {
-      const original = (globalThis as { PublicKeyCredential?: unknown })
-        .PublicKeyCredential;
-      // Remove WebAuthn support.
-      delete (globalThis as { PublicKeyCredential?: unknown }).PublicKeyCredential;
-
-      try {
-        const { result } = renderHook(() => usePasskey(), { wrapper });
-
-        // The hook should expose an unsupported flag/state.
-        const supported =
-          (result.current as { isSupported?: boolean }).isSupported ??
-          (result.current as { supported?: boolean }).supported;
-        expect(supported).toBe(false);
-
-        await act(async () => {
-          await expect(result.current.register("user@example.com")).rejects.toThrow();
-        });
-
-        expect(mockRegisterOptions).not.toHaveBeenCalled();
-        expect(result.current.status).toBe("error");
-        expect(result.current.error).toBeTruthy();
-      } finally {
-        (globalThis as { PublicKeyCredential?: unknown }).PublicKeyCredential =
-          original;
+      const call = mockedStartRegistration.mock.calls[0]![0] as {
+        optionsJSON: { rp: { id: string } }
       }
-    });
-  });
+      expect(call.optionsJSON.rp.id).toBe('server.example')
+    })
 
-  describe("state transitions", () => {
-    it("transitions idle -> pending -> success", async () => {
-      const options = makeOptions();
-      let resolveRegistration: (value: unknown) => void = () => {};
-      const pending = new Promise((resolve) => {
-        resolveRegistration = resolve;
-      });
+    it('sets error state and rethrows when the ceremony is rejected', async () => {
+      mockedRegisterOptions.mockResolvedValue({ options: makeOptions() } as never)
+      const boom = new WebAuthnError({
+        message: 'User cancelled',
+        code: 'ERROR_CEREMONY_ABORTED',
+        cause: new Error('User cancelled'),
+      })
+      mockedStartRegistration.mockRejectedValue(boom)
 
-      mockRegisterOptions.mockResolvedValue(options);
-      mockStartRegistration.mockReturnValue(pending);
-      mockRegisterVerify.mockResolvedValue({ userId: "u", token: "t" });
-      mockSignIn.mockResolvedValue(undefined);
+      const { result } = renderHook(() => usePasskey())
+      await act(async () => {
+        await expect(result.current.register('Ada')).rejects.toThrow('User cancelled')
+      })
 
-      const { result } = renderHook(() => usePasskey(), { wrapper });
+      expect(mockedRegisterVerify).not.toHaveBeenCalled()
+      expect(mockSignIn).not.toHaveBeenCalled()
+      expect(result.current.status).toBe('error')
+      expect(result.current.error).toBe(
+        'The passkey prompt was closed or timed out. Try again when you’re ready.',
+      )
+    })
 
-      expect(result.current.status).toBe("idle");
+    it('rejects without calling the API when the browser does not support WebAuthn', async () => {
+      mockedBrowserSupportsWebAuthn.mockReturnValue(false)
 
-      let registerPromise: Promise<unknown>;
+      const { result } = renderHook(() => usePasskey())
+      await act(async () => {
+        await expect(result.current.register('Ada')).rejects.toThrow()
+      })
+
+      expect(mockedRegisterOptions).not.toHaveBeenCalled()
+      expect(result.current.status).toBe('error')
+      expect(result.current.error).toBe(
+        'This browser doesn’t support passkeys. Try Safari, Chrome, or Edge on a recent device.',
+      )
+    })
+  })
+
+  describe('login', () => {
+    it('logs in successfully with no displayName argument and signs in', async () => {
+      const options = makeLoginOptions()
+      const response = makeAuthenticationResponse()
+      mockedLoginOptions.mockResolvedValue({ options } as never)
+      mockedStartAuthentication.mockResolvedValue(response as never)
+      mockedLoginVerify.mockResolvedValue(SESSION as never)
+
+      const { result } = renderHook(() => usePasskey())
+
+      let returned: unknown
+      await act(async () => {
+        returned = await result.current.login()
+      })
+
+      expect(mockedLoginOptions).toHaveBeenCalledWith()
+      expect(mockedStartAuthentication).toHaveBeenCalledWith({
+        optionsJSON: { ...options, rpId: 'example.com' },
+      })
+      expect(mockedLoginVerify).toHaveBeenCalledWith({ response })
+      expect(mockSignIn).toHaveBeenCalledWith(SESSION)
+      expect(returned).toEqual(SESSION)
+      expect(result.current.status).toBe('idle')
+      expect(result.current.error).toBeNull()
+    })
+
+    it('sets error state and rethrows when the login ceremony is rejected', async () => {
+      mockedLoginOptions.mockResolvedValue({ options: makeLoginOptions() } as never)
+      mockedStartAuthentication.mockRejectedValue(new Error('NotAllowedError'))
+
+      const { result } = renderHook(() => usePasskey())
+      await act(async () => {
+        await expect(result.current.login()).rejects.toThrow('NotAllowedError')
+      })
+
+      expect(mockedLoginVerify).not.toHaveBeenCalled()
+      expect(mockSignIn).not.toHaveBeenCalled()
+      expect(result.current.status).toBe('error')
+      expect(result.current.error).toBeTruthy()
+    })
+  })
+
+  describe('signPayload', () => {
+    const validPayload = new Uint8Array(32).fill(7)
+
+    it('signs a valid 32-byte payload and returns the assertion with scVal', async () => {
+      const response = makeAuthenticationResponse()
+      mockedStartAuthentication.mockResolvedValue(response as never)
+
+      const { result } = renderHook(() => usePasskey())
+
+      let returned: Awaited<ReturnType<typeof result.current.signPayload>> | undefined
+      await act(async () => {
+        returned = await result.current.signPayload(validPayload)
+      })
+
+      expect(mockedStartAuthentication).toHaveBeenCalledWith({
+        optionsJSON: {
+          challenge: 'b64url:32',
+          rpId: 'example.com',
+          allowCredentials: [{ id: SESSION.credentialId, type: 'public-key' }],
+          userVerification: 'required',
+          timeout: 60_000,
+        },
+      })
+      expect(mockedVerifyClientData).toHaveBeenCalledWith(response.response.clientDataJSON, {
+        challenge: validPayload,
+        type: 'webauthn.get',
+      })
+      expect(returned?.signature).toEqual(new Uint8Array(64).fill(9))
+      expect(returned?.scVal).toBe(MOCK_SCVAL)
+      expect(result.current.status).toBe('idle')
+      expect(result.current.error).toBeNull()
+    })
+
+    it('rejects a payload that is not 32 bytes without starting a ceremony', async () => {
+      const { result } = renderHook(() => usePasskey())
+
+      await act(async () => {
+        await expect(result.current.signPayload(new Uint8Array(16))).rejects.toThrow(
+          'Soroban auth payload must be 32 bytes',
+        )
+      })
+
+      expect(mockedStartAuthentication).not.toHaveBeenCalled()
+      expect(result.current.status).toBe('error')
+      expect(result.current.error).toBe('Soroban auth payload must be 32 bytes')
+    })
+
+    it('rejects when there is no active session', async () => {
+      mockedUseAuth.mockReturnValue({
+        session: null,
+        ready: true,
+        signIn: mockSignIn,
+        signOut: vi.fn(),
+      })
+
+      const { result } = renderHook(() => usePasskey())
+
+      await act(async () => {
+        await expect(result.current.signPayload(validPayload)).rejects.toThrow(
+          'Log in with your passkey first.',
+        )
+      })
+
+      expect(mockedStartAuthentication).not.toHaveBeenCalled()
+      expect(result.current.status).toBe('error')
+      expect(result.current.error).toBe('Log in with your passkey first.')
+    })
+
+    it('sets error state when the authenticator rejects the ceremony', async () => {
+      mockedStartAuthentication.mockRejectedValue(new Error('signing failed'))
+
+      const { result } = renderHook(() => usePasskey())
+
+      await act(async () => {
+        await expect(result.current.signPayload(validPayload)).rejects.toThrow('signing failed')
+      })
+
+      expect(result.current.status).toBe('error')
+      expect(result.current.error).toBe('signing failed')
+    })
+  })
+
+  describe('signer', () => {
+    it('resolves to the scVal produced by signPayload', async () => {
+      mockedStartAuthentication.mockResolvedValue(makeAuthenticationResponse() as never)
+
+      const { result } = renderHook(() => usePasskey())
+
+      let scVal: unknown
+      await act(async () => {
+        scVal = await result.current.signer(new Uint8Array(32).fill(1))
+      })
+
+      expect(scVal).toBe(MOCK_SCVAL)
+    })
+  })
+
+  describe('clearError / isBusy', () => {
+    it('clearError resets error and status to idle', async () => {
+      mockedRegisterOptions.mockRejectedValue(new Error('network down'))
+
+      const { result } = renderHook(() => usePasskey())
+      await act(async () => {
+        await expect(result.current.register('Ada')).rejects.toThrow()
+      })
+      expect(result.current.status).toBe('error')
+      expect(result.current.error).toBeTruthy()
+
       act(() => {
-        registerPromise = result.current.register("user@example.com");
-      });
+        result.current.clearError()
+      })
 
-      await waitFor(() => {
-        expect(result.current.status).toBe("pending");
-      });
+      expect(result.current.status).toBe('idle')
+      expect(result.current.error).toBeNull()
+    })
 
-      await act(async () => {
-        resolveRegistration(makeRegistrationResponse());
-        await registerPromise;
-      });
+    it('is busy while the registration ceremony is pending', async () => {
+      mockedRegisterOptions.mockResolvedValue({ options: makeOptions() } as never)
+      let resolveCeremony: (value: unknown) => void = () => {}
+      mockedStartRegistration.mockReturnValue(
+        new Promise((resolve) => {
+          resolveCeremony = resolve
+        }) as never,
+      )
+      mockedRegisterVerify.mockResolvedValue(SESSION as never)
 
-      expect(result.current.status).toBe("success");
-    });
+      const { result } = renderHook(() => usePasskey())
+      expect(result.current.isBusy).toBe(false)
 
-    it("clears a previous error on a new successful attempt", async () => {
-      mockRegisterOptions.mockRejectedValueOnce(new Error("first failure"));
-      mockDescribePasskeyError.mockReturnValue("First failure");
+      let pending!: Promise<unknown>
+      act(() => {
+        pending = result.current.register('Ada')
+      })
 
-      const { result } = renderHook(() => usePasskey(), { wrapper });
-
-      await act(async () => {
-        await expect(result.current.register("user@example.com")).rejects.toThrow();
-      });
-      expect(result.current.status).toBe("error");
-      expect(result.current.error).toBe("First failure");
-
-      // Second attempt succeeds.
-      mockRegisterOptions.mockResolvedValue(makeOptions());
-      mockStartRegistration.mockResolvedValue(makeRegistrationResponse());
-      mockRegisterVerify.mockResolvedValue({ userId: "u", token: "t" });
-      mockSignIn.mockResolvedValue(undefined);
+      await waitFor(() => expect(result.current.isBusy).toBe(true))
+      expect(result.current.status).toBe('prompting')
 
       await act(async () => {
-        await result.current.register("user@example.com");
-      });
+        resolveCeremony(makeRegistrationResponse())
+        await pending
+      })
 
-      expect(result.current.status).toBe("success");
-      expect(result.current.error).toBeNull();
-    });
-  });
-});
+      expect(result.current.isBusy).toBe(false)
+      expect(result.current.status).toBe('idle')
+    })
+  })
+})
