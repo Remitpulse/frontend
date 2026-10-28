@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { hash } from '@stellar/stellar-sdk'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { api, isTimeoutError } from '@/lib/api/client'
+import { api } from '@/lib/api/client'
 import { config } from '@/lib/config'
 import {
   clearSessionKey,
@@ -80,7 +80,10 @@ export async function issueSessionKey(deps: IssueSessionKeyDeps): Promise<Sessio
 }
 
 /** Returns a session-key signer when the record can cover `amount`, otherwise null. */
-export function sessionSignerFor(record: SessionKeyRecord | null, amount: number): AuthSigner | null {
+export function sessionSignerFor(
+  record: SessionKeyRecord | null,
+  amount: number,
+): AuthSigner | null {
   if (!sessionKeyCovers(record, amount)) return null
   return async (payload) =>
     ed25519SignatureScVal(record!.publicKey, await signWithSessionKey(record!, payload))
@@ -109,8 +112,6 @@ export function useSessionKey() {
       setRecord(null)
       return
     }
-    loadSessionKey(session.contractId).then(setRecord, () => setRecord(null))
-    if (!session) return setRecord(null)
     loadSessionKeyRecord(session.contractId).then(setRecord)
   }, [session])
 
@@ -153,12 +154,20 @@ export function useSessionKey() {
   }, [])
 
   /** Returns a session-key signer when it can cover `amount`, otherwise null. */
-  const signerFor = useCallback((amount: number): AuthSigner | null => sessionSignerFor(record, amount), [record])
+  const signerFor = useCallback(
+    (amount: number): AuthSigner | null => sessionSignerFor(record, amount),
+    [record],
+  )
+
+  /** Minutes remaining before the active session key expires, ticking down every 30s. */
+  const minutesLeft =
+    record && now ? Math.max(0, Math.ceil((record.expiresAt - now) / 60_000)) : null
 
   return {
     supported: typeof window !== 'undefined' && supportsEd25519SessionKeys(),
     record,
     active: isSessionKeyActive(record),
+    minutesLeft,
     issuing,
     error,
     issue,

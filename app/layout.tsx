@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next'
-import { headers } from 'next/headers'
 import { Inter } from 'next/font/google'
 import { config } from '@/lib/config'
 import './globals.css'
@@ -9,7 +8,8 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'sw
 
 export const metadata: Metadata = {
   title: { default: 'RemitPulse — Money moves. Life happens.', template: '%s · RemitPulse' },
-  description: 'Send money home in moments with passkey security and zero hidden fees. Powered by Stellar.',
+  description:
+    'Send money home in moments with passkey security and zero hidden fees. Powered by Stellar.',
   icons: {
     icon: '/favicon.ico',
     apple: '/apple-icon.png',
@@ -24,9 +24,11 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 }
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const nonce = (await headers()).get('x-nonce') ?? undefined
-
+// The CSP nonce (set on the response header by middleware.ts) does not need to be
+// threaded through here: Next.js reads it from the Content-Security-Policy response
+// header and nonces its own injected scripts automatically. Nothing in this tree
+// renders an inline <script>/<style> that would need the nonce passed in manually.
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={inter.variable}>
       <body>
@@ -35,7 +37,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             Demo mode · rates, fees and partner screens are sample data
           </div>
         )}
-        <Providers nonce={nonce}>{children}</Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   )
