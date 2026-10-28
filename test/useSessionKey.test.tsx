@@ -1,325 +1,387 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
-import { useSessionKey } from '../hooks/useSessionKey';
+// @vitest-environment jsdom
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { renderHook, act, waitFor } from '@testing-library/react'
 import {
+  useSessionKey,
   loadSessionKeyRecord,
   sessionSignerFor,
   isSessionKeyActive,
   issueSessionKey,
-  sessionKeyCovers,
-} from '../lib/stellar/sessionKeys';
-import type { SessionKeyRecord } from '../lib/stellar/sessionKeys';
+} from '@/hooks/useSessionKey'
+import type { SessionKeyRecord } from '@/lib/stellar/sessionKeys'
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
 
-const mockUseAuth = vi.fn();
-vi.mock('../hooks/useAuth', () => ({
+const mockUseAuth = vi.fn()
+vi.mock('@/components/providers/AuthProvider', () => ({
   useAuth: () => mockUseAuth(),
-}));
+}))
 
-const mockUsePasskey = vi.fn();
-vi.mock('../hooks/usePasskey', () => ({
+const mockSignPayload = vi.fn()
+const mockSigner = vi.fn()
+const mockUsePasskey = vi.fn()
+vi.mock('@/hooks/usePasskey', () => ({
   usePasskey: () => mockUsePasskey(),
-}));
+}))
 
-const mockIssueSessionKey = vi.fn();
-const mockSignPreparedXdr = vi.fn();
-const mockConfirmSessionKey = vi.fn();
-vi.mock('../lib/api', () => ({
+const mockIssueSessionKeyApi = vi.fn()
+const mockConfirmSessionKey = vi.fn()
+vi.mock('@/lib/api/client', () => ({
   api: {
-    issueSessionKey: (...args: unknown[]) => mockIssueSessionKey(...args),
-    signPreparedXdr: (...args: unknown[]) => mockSignPreparedXdr(...args),
+    issueSessionKey: (...args: unknown[]) => mockIssueSessionKeyApi(...args),
     confirmSessionKey: (...args: unknown[]) => mockConfirmSessionKey(...args),
   },
-}));
+  isTimeoutError: () => false,
+}))
 
-vi.mock('../lib/stellar/sessionKeys', async () => {
-  const actual = await vi.importActual<typeof import('../lib/stellar/sessionKeys')>(
-    '../lib/stellar/sessionKeys',
-  );
+const mockSignPreparedXdr = vi.fn()
+vi.mock('@/lib/stellar/smartAccount', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/stellar/smartAccount')>(
+    '@/lib/stellar/smartAccount',
+  )
   return {
     ...actual,
-    loadSessionKeyRecord: vi.fn(),
-    sessionSignerFor: vi.fn(),
-    isSessionKeyActive: vi.fn(),
-    issueSessionKey: vi.fn(),
-    sessionKeyCovers: vi.fn(),
-  };
-});
+    signPreparedXdr: (...args: unknown[]) => mockSignPreparedXdr(...args),
+  }
+})
 
-const mockedLoadSessionKeyRecord = vi.mocked(loadSessionKeyRecord);
-const mockedSessionSignerFor = vi.mocked(sessionSignerFor);
-const mockedIsSessionKeyActive = vi.mocked(isSessionKeyActive);
-const mockedIssueSessionKey = vi.mocked(issueSessionKey);
-const mockedSessionKeyCovers = vi.mocked(sessionKeyCovers);
+const mockClearSessionKey = vi.fn()
+const mockGenerateSessionKey = vi.fn()
+const mockLoadSessionKey = vi.fn()
+const mockSaveSessionKey = vi.fn()
+const mockSessionKeyCovers = vi.fn()
+const mockSignWithSessionKey = vi.fn()
+const mockSupportsEd25519SessionKeys = vi.fn()
+vi.mock('@/lib/stellar/sessionKeys', () => ({
+  clearSessionKey: (...args: unknown[]) => mockClearSessionKey(...args),
+  generateSessionKey: (...args: unknown[]) => mockGenerateSessionKey(...args),
+  loadSessionKey: (...args: unknown[]) => mockLoadSessionKey(...args),
+  saveSessionKey: (...args: unknown[]) => mockSaveSessionKey(...args),
+  sessionKeyCovers: (...args: unknown[]) => mockSessionKeyCovers(...args),
+  signWithSessionKey: (...args: unknown[]) => mockSignWithSessionKey(...args),
+  supportsEd25519SessionKeys: (...args: unknown[]) => mockSupportsEd25519SessionKeys(...args),
+}))
+
+const mockEd25519SignatureScVal = vi.fn()
+vi.mock('@/lib/stellar/signatures', () => ({
+  ed25519SignatureScVal: (...args: unknown[]) => mockEd25519SignatureScVal(...args),
+}))
+
+const mockConfig = vi.hoisted(() => ({
+  demoMode: true,
+  sessionKey: { maxAmount: 50, ttlMinutes: 30 },
+}))
+vi.mock('@/lib/config', () => ({ config: mockConfig }))
 
 // ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
 
-const PUBLIC_KEY = 'GABC123PUBLICKEY';
-const OTHER_PUBLIC_KEY = 'GDEF456OTHERKEY';
+const CONTRACT_ID = 'CCONTRACTADDRESSXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+const PUBLIC_KEY = new Uint8Array(32).fill(7)
+const FAKE_PRIVATE_KEY = { type: 'private' } as unknown as CryptoKey
 
 function makeRecord(overrides: Partial<SessionKeyRecord> = {}): SessionKeyRecord {
   return {
+    id: 'active',
+    contractId: CONTRACT_ID,
+    privateKey: FAKE_PRIVATE_KEY,
     publicKey: PUBLIC_KEY,
-    secret: 'S...',
+    maxAmount: 50,
     expiresAt: Date.now() + 60_000,
-    maxAmount: '1000',
+    registered: true,
     ...overrides,
-  } as SessionKeyRecord;
+  }
 }
-
-function makeSigner() {
-  return {
-    publicKey: PUBLIC_KEY,
-    sign: vi.fn().mockResolvedValue('signed-xdr'),
-  };
-}
-
-const signPayload = vi.fn();
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.clearAllMocks()
+  mockConfig.demoMode = true
+  mockConfig.sessionKey = { maxAmount: 50, ttlMinutes: 30 }
 
-  mockUseAuth.mockReturnValue({
-    mode: 'demo',
-    address: 'GUSERADDRESS',
-    isAuthenticated: true,
-  });
+  mockUseAuth.mockReturnValue({ session: { contractId: CONTRACT_ID } })
+  mockUsePasskey.mockReturnValue({ signPayload: mockSignPayload, signer: mockSigner })
 
-  mockUsePasskey.mockReturnValue({
-    signPayload,
-  });
-
-  mockedLoadSessionKeyRecord.mockReturnValue(null);
-  mockedSessionSignerFor.mockReturnValue(null);
-  mockedIsSessionKeyActive.mockReturnValue(false);
-  mockedSessionKeyCovers.mockReturnValue(false);
-  mockedIssueSessionKey.mockResolvedValue(makeRecord());
-  mockIssueSessionKey.mockResolvedValue({
-    xdr: 'prepared-xdr',
-    sessionKeyPublic: PUBLIC_KEY,
-  });
-  mockSignPreparedXdr.mockResolvedValue('signed-xdr');
-  mockConfirmSessionKey.mockResolvedValue({ ok: true });
-});
+  mockLoadSessionKey.mockResolvedValue(null)
+  mockSupportsEd25519SessionKeys.mockReturnValue(true)
+  mockSaveSessionKey.mockResolvedValue(undefined)
+})
 
 afterEach(() => {
-  vi.restoreAllMocks();
-});
+  vi.restoreAllMocks()
+})
 
 // ---------------------------------------------------------------------------
 // Pure helper unit tests
 // ---------------------------------------------------------------------------
 
 describe('loadSessionKeyRecord', () => {
-  it('returns null when nothing is stored', () => {
-    const storage = { getItem: vi.fn().mockReturnValue(null) } as unknown as Storage;
-    expect(loadSessionKeyRecord(storage)).toBeNull();
-  });
+  it('resolves with the stored record', async () => {
+    const record = makeRecord()
+    mockLoadSessionKey.mockResolvedValueOnce(record)
+    await expect(loadSessionKeyRecord(CONTRACT_ID)).resolves.toEqual(record)
+    expect(mockLoadSessionKey).toHaveBeenCalledWith(CONTRACT_ID)
+  })
 
-  it('parses a stored record', () => {
-    const record = makeRecord();
-    const storage = {
-      getItem: vi.fn().mockReturnValue(JSON.stringify(record)),
-    } as unknown as Storage;
-    expect(loadSessionKeyRecord(storage)).toEqual(record);
-  });
+  it('resolves to null when nothing is stored', async () => {
+    mockLoadSessionKey.mockResolvedValueOnce(null)
+    await expect(loadSessionKeyRecord(CONTRACT_ID)).resolves.toBeNull()
+  })
 
-  it('returns null on malformed JSON', () => {
-    const storage = { getItem: vi.fn().mockReturnValue('{not-json') } as unknown as Storage;
-    expect(loadSessionKeyRecord(storage)).toBeNull();
-  });
-});
-
-describe('sessionSignerFor', () => {
-  it('returns null when no record', () => {
-    expect(sessionSignerFor(null, '100')).toBeNull();
-  });
-
-  it('returns a signer when the record covers the amount', () => {
-    const record = makeRecord();
-    mockedSessionKeyCovers.mockReturnValue(true);
-    const signer = sessionSignerFor(record, '100');
-    expect(signer).not.toBeNull();
-    expect(mockedSessionKeyCovers).toHaveBeenCalledWith(record, '100');
-  });
-
-  it('returns null when the record does not cover the amount', () => {
-    const record = makeRecord();
-    mockedSessionKeyCovers.mockReturnValue(false);
-    expect(sessionSignerFor(record, '5000')).toBeNull();
-  });
-});
+  it('resolves to null instead of throwing when the lookup fails', async () => {
+    mockLoadSessionKey.mockRejectedValueOnce(new Error('indexeddb unavailable'))
+    await expect(loadSessionKeyRecord(CONTRACT_ID)).resolves.toBeNull()
+  })
+})
 
 describe('isSessionKeyActive', () => {
-  it('is false for null record', () => {
-    expect(isSessionKeyActive(null)).toBe(false);
-  });
+  it('is false for a null record', () => {
+    expect(isSessionKeyActive(null)).toBe(false)
+  })
 
-  it('is true for a non-expired record', () => {
-    expect(isSessionKeyActive(makeRecord({ expiresAt: Date.now() + 60_000 }))).toBe(true);
-  });
+  it('is true for a registered, non-expired record', () => {
+    expect(
+      isSessionKeyActive(makeRecord({ registered: true, expiresAt: Date.now() + 60_000 })),
+    ).toBe(true)
+  })
 
   it('is false for an expired record', () => {
-    expect(isSessionKeyActive(makeRecord({ expiresAt: Date.now() - 1 }))).toBe(false);
-  });
-});
+    expect(isSessionKeyActive(makeRecord({ registered: true, expiresAt: Date.now() - 1 }))).toBe(
+      false,
+    )
+  })
 
-describe('issueSessionKey', () => {
-  it('issues a session key in demo mode', async () => {
-    const record = makeRecord();
-    mockedIssueSessionKey.mockResolvedValue(record);
+  it('is false for an unregistered record', () => {
+    expect(
+      isSessionKeyActive(makeRecord({ registered: false, expiresAt: Date.now() + 60_000 })),
+    ).toBe(false)
+  })
+})
+
+describe('sessionSignerFor', () => {
+  it('returns null when the record does not cover the amount', () => {
+    mockSessionKeyCovers.mockReturnValue(false)
+    expect(sessionSignerFor(null, 100)).toBeNull()
+    expect(mockSessionKeyCovers).toHaveBeenCalledWith(null, 100)
+  })
+
+  it('returns a signer that delegates to signWithSessionKey + ed25519SignatureScVal', async () => {
+    const record = makeRecord()
+    mockSessionKeyCovers.mockReturnValue(true)
+    const rawSignature = new Uint8Array(64).fill(9)
+    const scVal = { type: 'scvVec' }
+    mockSignWithSessionKey.mockResolvedValue(rawSignature)
+    mockEd25519SignatureScVal.mockReturnValue(scVal)
+
+    const signer = sessionSignerFor(record, 10)
+    expect(signer).not.toBeNull()
+
+    const payload = new Uint8Array(32).fill(1)
+    const result = await signer!(payload)
+
+    expect(mockSignWithSessionKey).toHaveBeenCalledWith(record, payload)
+    expect(mockEd25519SignatureScVal).toHaveBeenCalledWith(record.publicKey, rawSignature)
+    expect(result).toBe(scVal)
+  })
+})
+
+describe('issueSessionKey (pure helper)', () => {
+  const baseDeps = {
+    contractId: CONTRACT_ID,
+    maxAmount: 50,
+    ttlMinutes: 30,
+    issueSessionKey: (...args: unknown[]) => mockIssueSessionKeyApi(...args),
+    confirmSessionKey: (...args: unknown[]) => mockConfirmSessionKey(...args),
+    signPreparedXdr: (...args: unknown[]) => mockSignPreparedXdr(...args),
+  } as const
+
+  it('demo mode: signs the public key hash with the passkey and saves a registered record', async () => {
+    const generated = makeRecord({ registered: false })
+    mockGenerateSessionKey.mockResolvedValue(generated)
+    mockSignPayload.mockResolvedValue({ signature: new Uint8Array(64) })
+
     const result = await issueSessionKey({
-      mode: 'demo',
-      publicKey: PUBLIC_KEY,
-      maxAmount: '1000',
-      ttlSeconds: 60,
-    } as never);
-    expect(result).toEqual(record);
-  });
-});
+      ...baseDeps,
+      passkey: { signPayload: mockSignPayload, signer: mockSigner },
+      demoMode: true,
+    })
+
+    expect(mockSignPayload).toHaveBeenCalledTimes(1)
+    expect(mockIssueSessionKeyApi).not.toHaveBeenCalled()
+    expect(mockSaveSessionKey).toHaveBeenCalledWith({ ...generated, registered: true })
+    expect(result).toEqual({ ...generated, registered: true })
+  })
+
+  it('live mode: issues via the backend, signs the prepared xdr, and confirms', async () => {
+    const generated = makeRecord({ registered: false })
+    mockGenerateSessionKey.mockResolvedValue(generated)
+    mockIssueSessionKeyApi.mockResolvedValue({ xdr: 'unsigned-xdr' })
+    mockSignPreparedXdr.mockResolvedValue('signed-xdr')
+    mockConfirmSessionKey.mockResolvedValue({ hash: 'tx-hash' })
+
+    const result = await issueSessionKey({
+      ...baseDeps,
+      passkey: { signPayload: mockSignPayload, signer: mockSigner },
+      demoMode: false,
+    })
+
+    expect(mockIssueSessionKeyApi).toHaveBeenCalledWith(
+      expect.objectContaining({ contractId: CONTRACT_ID, maxAmount: generated.maxAmount }),
+    )
+    expect(mockSignPreparedXdr).toHaveBeenCalledWith(
+      expect.objectContaining({ xdr: 'unsigned-xdr', accountId: CONTRACT_ID, signer: mockSigner }),
+    )
+    expect(mockConfirmSessionKey).toHaveBeenCalledWith({
+      contractId: CONTRACT_ID,
+      signedXdr: 'signed-xdr',
+    })
+    expect(mockSignPayload).not.toHaveBeenCalled()
+    expect(result).toEqual({ ...generated, registered: true })
+  })
+})
 
 // ---------------------------------------------------------------------------
 // useSessionKey hook tests
 // ---------------------------------------------------------------------------
 
 describe('useSessionKey', () => {
-  it('exposes active=false when no record is stored', () => {
-    mockedLoadSessionKeyRecord.mockReturnValue(null);
-    mockedIsSessionKeyActive.mockReturnValue(false);
+  it('exposes active=false when no record is stored', async () => {
+    mockLoadSessionKey.mockResolvedValue(null)
 
-    const { result } = renderHook(() => useSessionKey());
+    const { result } = renderHook(() => useSessionKey())
 
-    expect(result.current.active).toBe(false);
-    expect(result.current.record).toBeNull();
-    expect(result.current.error).toBeNull();
-  });
+    await waitFor(() => expect(result.current.record).toBeNull())
+    expect(result.current.active).toBe(false)
+    expect(result.current.error).toBeNull()
+  })
 
-  it('reflects active=true for a registered, non-expired record', () => {
-    const record = makeRecord();
-    mockedLoadSessionKeyRecord.mockReturnValue(record);
-    mockedIsSessionKeyActive.mockReturnValue(true);
+  it('reflects active=true for a registered, non-expired stored record', async () => {
+    const record = makeRecord({ registered: true, expiresAt: Date.now() + 60_000 })
+    mockLoadSessionKey.mockResolvedValue(record)
 
-    const { result } = renderHook(() => useSessionKey());
+    const { result } = renderHook(() => useSessionKey())
 
-    expect(result.current.active).toBe(true);
-    expect(result.current.record).toEqual(record);
-  });
+    await waitFor(() => expect(result.current.record).toEqual(record))
+    expect(result.current.active).toBe(true)
+  })
 
-  it('reflects active=false for an expired record', () => {
-    const record = makeRecord({ expiresAt: Date.now() - 1 });
-    mockedLoadSessionKeyRecord.mockReturnValue(record);
-    mockedIsSessionKeyActive.mockReturnValue(false);
+  it('reflects active=false for an expired stored record', async () => {
+    const record = makeRecord({ registered: true, expiresAt: Date.now() - 1 })
+    mockLoadSessionKey.mockResolvedValue(record)
 
-    const { result } = renderHook(() => useSessionKey());
+    const { result } = renderHook(() => useSessionKey())
 
-    expect(result.current.active).toBe(false);
-  });
+    await waitFor(() => expect(result.current.record).toEqual(record))
+    expect(result.current.active).toBe(false)
+  })
 
   it('issue() succeeds in demo mode and signs the public key hash', async () => {
-    const record = makeRecord();
-    mockedIssueSessionKey.mockResolvedValue(record);
-    mockedIsSessionKeyActive.mockReturnValue(true);
+    mockConfig.demoMode = true
+    const generated = makeRecord({ registered: false })
+    mockGenerateSessionKey.mockResolvedValue(generated)
+    mockSignPayload.mockResolvedValue({ signature: new Uint8Array(64) })
 
-    const { result } = renderHook(() => useSessionKey());
-
-    await act(async () => {
-      await result.current.issue({ maxAmount: '1000', ttlSeconds: 60 });
-    });
-
-    expect(mockedIssueSessionKey).toHaveBeenCalled();
-    expect(signPayload).toHaveBeenCalledTimes(1);
-    expect(result.current.error).toBeNull();
-    expect(result.current.record).toEqual(record);
-    expect(result.current.active).toBe(true);
-  });
-
-  it('issue() succeeds in live mode and calls api flow', async () => {
-    mockUseAuth.mockReturnValue({
-      mode: 'live',
-      address: 'GUSERADDRESS',
-      isAuthenticated: true,
-    });
-    const record = makeRecord();
-    mockedIssueSessionKey.mockResolvedValue(record);
-    mockedIsSessionKeyActive.mockReturnValue(true);
-
-    const { result } = renderHook(() => useSessionKey());
+    const { result } = renderHook(() => useSessionKey())
+    await waitFor(() => expect(result.current.record).toBeNull())
 
     await act(async () => {
-      await result.current.issue({ maxAmount: '1000', ttlSeconds: 60 });
-    });
+      await result.current.issue()
+    })
 
-    expect(mockIssueSessionKey).toHaveBeenCalled();
-    expect(mockSignPreparedXdr).toHaveBeenCalledWith('prepared-xdr');
-    expect(mockConfirmSessionKey).toHaveBeenCalled();
-    expect(result.current.error).toBeNull();
-    expect(result.current.active).toBe(true);
-  });
+    expect(mockSignPayload).toHaveBeenCalledTimes(1)
+    expect(mockIssueSessionKeyApi).not.toHaveBeenCalled()
+    expect(result.current.error).toBeNull()
+    expect(result.current.record).toEqual({ ...generated, registered: true })
+    expect(result.current.active).toBe(true)
+    expect(result.current.issuing).toBe(false)
+  })
+
+  it('issue() succeeds in live mode and calls the backend + relay flow', async () => {
+    mockConfig.demoMode = false
+    const generated = makeRecord({ registered: false })
+    mockGenerateSessionKey.mockResolvedValue(generated)
+    mockIssueSessionKeyApi.mockResolvedValue({ xdr: 'unsigned-xdr' })
+    mockSignPreparedXdr.mockResolvedValue('signed-xdr')
+    mockConfirmSessionKey.mockResolvedValue({ hash: 'tx-hash' })
+
+    const { result } = renderHook(() => useSessionKey())
+    await waitFor(() => expect(result.current.record).toBeNull())
+
+    await act(async () => {
+      await result.current.issue()
+    })
+
+    expect(mockIssueSessionKeyApi).toHaveBeenCalled()
+    expect(mockSignPreparedXdr).toHaveBeenCalled()
+    expect(mockConfirmSessionKey).toHaveBeenCalled()
+    expect(result.current.error).toBeNull()
+    expect(result.current.active).toBe(true)
+  })
 
   it('issue() sets error and rethrows on failure', async () => {
-    const boom = new Error('issue failed');
-    mockedIssueSessionKey.mockRejectedValue(boom);
+    const boom = new Error('issue failed')
+    mockGenerateSessionKey.mockRejectedValue(boom)
 
-    const { result } = renderHook(() => useSessionKey());
+    const { result } = renderHook(() => useSessionKey())
+    await waitFor(() => expect(result.current.record).toBeNull())
 
     await act(async () => {
-      await expect(
-        result.current.issue({ maxAmount: '1000', ttlSeconds: 60 }),
-      ).rejects.toThrow('issue failed');
-    });
+      await expect(result.current.issue()).rejects.toThrow('issue failed')
+    })
 
-    await waitFor(() => {
-      expect(result.current.error).toBeTruthy();
-    });
-  });
+    expect(result.current.error).toBe('issue failed')
+    expect(result.current.issuing).toBe(false)
+  })
 
   it('revoke() clears the record', async () => {
-    const record = makeRecord();
-    mockedLoadSessionKeyRecord.mockReturnValue(record);
-    mockedIsSessionKeyActive.mockReturnValue(true);
+    const record = makeRecord({ registered: true, expiresAt: Date.now() + 60_000 })
+    mockLoadSessionKey.mockResolvedValue(record)
+    mockClearSessionKey.mockResolvedValue(undefined)
 
-    const { result } = renderHook(() => useSessionKey());
-
-    expect(result.current.record).toEqual(record);
+    const { result } = renderHook(() => useSessionKey())
+    await waitFor(() => expect(result.current.record).toEqual(record))
 
     await act(async () => {
-      await result.current.revoke();
-    });
+      await result.current.revoke()
+    })
 
-    expect(result.current.record).toBeNull();
-    expect(result.current.active).toBe(false);
-  });
+    expect(mockClearSessionKey).toHaveBeenCalled()
+    expect(result.current.record).toBeNull()
+    expect(result.current.active).toBe(false)
+  })
 
-  it('signerFor returns a signer only when the record covers the amount', () => {
-    const record = makeRecord();
-    const signer = makeSigner();
-    mockedLoadSessionKeyRecord.mockReturnValue(record);
-    mockedIsSessionKeyActive.mockReturnValue(true);
+  it('signerFor returns a signer only when the record covers the amount', async () => {
+    const record = makeRecord({ registered: true, expiresAt: Date.now() + 60_000 })
+    mockLoadSessionKey.mockResolvedValue(record)
 
-    mockedSessionSignerFor.mockReturnValue(signer as never);
+    const { result } = renderHook(() => useSessionKey())
+    await waitFor(() => expect(result.current.record).toEqual(record))
 
-    const { result } = renderHook(() => useSessionKey());
+    mockSessionKeyCovers.mockReturnValue(true)
+    const signer = result.current.signerFor(10)
+    expect(signer).not.toBeNull()
+    expect(mockSessionKeyCovers).toHaveBeenCalledWith(record, 10)
 
-    const covered = result.current.signerFor('100');
-    expect(covered).toEqual(signer);
-    expect(mockedSessionSignerFor).toHaveBeenCalledWith(record, '100');
+    mockSessionKeyCovers.mockReturnValue(false)
+    expect(result.current.signerFor(999_999)).toBeNull()
+  })
 
-    mockedSessionSignerFor.mockReturnValue(null);
-    const notCovered = result.current.signerFor('999999');
-    expect(notCovered).toBeNull();
-  });
+  it('signerFor returns null when there is no active record', async () => {
+    mockLoadSessionKey.mockResolvedValue(null)
+    mockSessionKeyCovers.mockReturnValue(false)
 
-  it('signerFor returns null when there is no active record', () => {
-    mockedLoadSessionKeyRecord.mockReturnValue(null);
-    mockedIsSessionKeyActive.mockReturnValue(false);
+    const { result } = renderHook(() => useSessionKey())
+    await waitFor(() => expect(result.current.record).toBeNull())
 
-    const { result } = renderHook(() => useSessionKey());
+    expect(result.current.signerFor(10)).toBeNull()
+  })
 
-    expect(result.current.signerFor('100')).toBeNull();
-  });
-});
+  it('reports supported based on Ed25519 session-key capability', async () => {
+    mockSupportsEd25519SessionKeys.mockReturnValue(false)
+    const { result } = renderHook(() => useSessionKey())
+    await waitFor(() => expect(result.current.record).toBeNull())
+    expect(result.current.supported).toBe(false)
+  })
+})

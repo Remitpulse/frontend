@@ -13,7 +13,11 @@ export function SpendByCurrency({ totals }: { totals: CurrencyTotal[] }) {
   const max = Math.max(...totals.map((t) => t.total))
 
   return (
-    <div className="space-y-3" role="img" aria-label={`Total sent by currency: ${totals.map((t) => `${t.currency} ${formatMoney(t.total)}`).join(', ')}`}>
+    <div
+      className="space-y-3"
+      role="img"
+      aria-label={`Total sent by currency: ${totals.map((t) => `${t.currency} ${formatMoney(t.total)}`).join(', ')}`}
+    >
       {totals.map((t) => (
         <div key={t.currency} aria-hidden="true">
           <div className="flex items-baseline justify-between text-[13px]">

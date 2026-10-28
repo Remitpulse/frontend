@@ -19,7 +19,11 @@ export function isQuotableAmount(sendAmount: string): boolean {
 }
 
 /** Debounced quote fetching with a live lock countdown ("Rate locked · 05:00"). */
-export function useQuote(params: { sendAmount: string; sendCurrency: SendCurrency; receiveCurrency: ReceiveCurrency }) {
+export function useQuote(params: {
+  sendAmount: string
+  sendCurrency: SendCurrency
+  receiveCurrency: ReceiveCurrency
+}) {
   const [quote, setQuote] = useState<Quote | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -69,5 +73,12 @@ export function useQuote(params: { sendAmount: string; sendCurrency: SendCurrenc
     return () => clearInterval(i)
   }, [quote])
 
-  return { quote, loading, error, secondsLeft, expired: !!quote && secondsLeft === 0, refresh: fetchQuote }
+  return {
+    quote,
+    loading,
+    error,
+    secondsLeft,
+    expired: !!quote && secondsLeft === 0,
+    refresh: fetchQuote,
+  }
 }

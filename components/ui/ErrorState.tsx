@@ -7,7 +7,9 @@ export function ErrorState({ message, onRetry }: { message?: string | null; onRe
         <AlertIcon size={18} />
         <p className="text-body font-semibold">Couldn’t load this</p>
       </div>
-      <p className="mt-1 text-[13px] text-danger">{message ?? 'Check your connection and try again.'}</p>
+      <p className="mt-1 text-[13px] text-danger">
+        {message ?? 'Check your connection and try again.'}
+      </p>
       <button
         onClick={onRetry}
         className="mt-4 inline-flex h-9 items-center justify-center rounded-control border border-border bg-white px-4 text-[13px] font-semibold text-ink hover:bg-surface"

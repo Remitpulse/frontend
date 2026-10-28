@@ -2,7 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
-import { ArrowRightIcon, BankIcon, CashIcon, CheckCircleIcon, ClockIcon, ExternalIcon, ShieldIcon, XIcon } from '@/components/ui/Icons'
+import {
+  ArrowRightIcon,
+  BankIcon,
+  CashIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  ExternalIcon,
+  ShieldIcon,
+  XIcon,
+} from '@/components/ui/Icons'
 import { Tag } from '@/components/ui/StatusPill'
 import { api, ApiError } from '@/lib/api/client'
 import { cn } from '@/lib/cn'
@@ -138,7 +147,10 @@ export function Sep24Modal(props: Sep24ModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-navy/60 sm:items-center" role="presentation">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-navy/60 sm:items-center"
+      role="presentation"
+    >
       <div
         role="dialog"
         aria-modal="true"
@@ -153,14 +165,21 @@ export function Sep24Modal(props: Sep24ModalProps) {
             </h2>
             <p className="text-caption text-muted">{props.anchorName}</p>
           </div>
-          <button ref={closeRef} onClick={onClose} className="rounded-full p-1.5 text-muted hover:bg-surface hover:text-ink" aria-label="Close partner portal">
+          <button
+            ref={closeRef}
+            onClick={onClose}
+            className="rounded-full p-1.5 text-muted hover:bg-surface hover:text-ink"
+            aria-label="Close partner portal"
+          >
             <XIcon size={22} />
           </button>
         </header>
 
         <div className="flex-1 overflow-y-auto px-6 py-5">
           <div className="rounded-control bg-royal-soft px-4 py-3">
-            <p className="text-body font-semibold text-royal">{props.kind === 'deposit' ? 'Funding your transfer' : 'Cashing out'}</p>
+            <p className="text-body font-semibold text-royal">
+              {props.kind === 'deposit' ? 'Funding your transfer' : 'Cashing out'}
+            </p>
             <p className="mt-1 flex items-center gap-2 text-[13px] text-ink">
               {props.summary.amount} <ArrowRightIcon size={14} /> {props.summary.counterparty}
             </p>
@@ -168,8 +187,12 @@ export function Sep24Modal(props: Sep24ModalProps) {
 
           <div className="mt-4">
             {!allowed ? (
-              <div className="rounded-card border border-danger bg-danger-soft p-5 text-body text-danger" role="alert">
-                This partner address isn’t on RemitPulse’s approved list, so we didn’t open it. Contact support.
+              <div
+                className="rounded-card border border-danger bg-danger-soft p-5 text-body text-danger"
+                role="alert"
+              >
+                This partner address isn’t on RemitPulse’s approved list, so we didn’t open it.
+                Contact support.
               </div>
             ) : url ? (
               popup ? (
@@ -184,7 +207,10 @@ export function Sep24Modal(props: Sep24ModalProps) {
                     allow="camera; publickey-credentials-get"
                     referrerPolicy="no-referrer"
                   />
-                  <button onClick={openPopup} className="flex w-full items-center justify-center gap-2 border-t border-border py-3 text-[13px] font-medium text-royal">
+                  <button
+                    onClick={openPopup}
+                    className="flex w-full items-center justify-center gap-2 border-t border-border py-3 text-[13px] font-medium text-royal"
+                  >
                     Having trouble? Open in a new window <ExternalIcon size={14} />
                   </button>
                 </div>
@@ -205,7 +231,9 @@ export function Sep24Modal(props: Sep24ModalProps) {
           <div className="mt-6 flex items-start gap-3" aria-live="polite">
             <ClockIcon className="mt-0.5 shrink-0 text-royal" />
             <div>
-              <p className="text-body font-semibold text-ink">{FAILED.has(status) ? 'Funding didn’t complete' : 'Waiting for funding'}</p>
+              <p className="text-body font-semibold text-ink">
+                {FAILED.has(status) ? 'Funding didn’t complete' : 'Waiting for funding'}
+              </p>
               <p className="mt-1 text-[13px] text-muted">
                 {FAILED.has(status)
                   ? 'Nothing was charged. Close this window to try again or pay from your wallet.'
@@ -228,7 +256,9 @@ function PopupWaiting({ onRefocus }: { onRefocus: () => void }) {
   return (
     <div className="rounded-card border border-border bg-white p-6 text-center">
       <p className="text-lg font-semibold text-ink">Connecting securely…</p>
-      <p className="mt-2 text-body text-muted">We opened your partner portal in a new window. Keep this window open.</p>
+      <p className="mt-2 text-body text-muted">
+        We opened your partner portal in a new window. Keep this window open.
+      </p>
       <Button variant="secondary" className="mt-5" onClick={onRefocus}>
         Show partner window
       </Button>
@@ -237,7 +267,13 @@ function PopupWaiting({ onRefocus }: { onRefocus: () => void }) {
 }
 
 /** Mirrors the Figma partner screen; production loads the anchor’s real SEP-24 portal. */
-function DemoPartnerPortal({ anchorName, onContinue }: { anchorName: string; onContinue: () => Promise<void> }) {
+function DemoPartnerPortal({
+  anchorName,
+  onContinue,
+}: {
+  anchorName: string
+  onContinue: () => Promise<void>
+}) {
   const [method, setMethod] = useState<'bank' | 'cash'>('bank')
   const [busy, setBusy] = useState(false)
   return (
@@ -245,12 +281,24 @@ function DemoPartnerPortal({ anchorName, onContinue }: { anchorName: string; onC
       <Tag tone="mint">Secure connection</Tag>
       <p className="mt-4 text-[26px] font-bold text-navy">{anchorName}</p>
       <p className="mt-2 text-xl font-semibold text-ink">Add money to your transfer</p>
-      <p className="mt-2 text-[13px] text-muted">Complete funding with our partner to get your transfer moving.</p>
+      <p className="mt-2 text-[13px] text-muted">
+        Complete funding with our partner to get your transfer moving.
+      </p>
       <div className="mt-5 space-y-3" role="radiogroup" aria-label="Funding method">
         {(
           [
-            { id: 'bank', icon: <BankIcon />, title: 'Bank account', detail: 'Secure bank connection' },
-            { id: 'cash', icon: <CashIcon />, title: 'Cash at a location', detail: `Find a nearby ${anchorName} agent` },
+            {
+              id: 'bank',
+              icon: <BankIcon />,
+              title: 'Bank account',
+              detail: 'Secure bank connection',
+            },
+            {
+              id: 'cash',
+              icon: <CashIcon />,
+              title: 'Cash at a location',
+              detail: `Find a nearby ${anchorName} agent`,
+            },
           ] as const
         ).map((o) => (
           <button
@@ -283,7 +331,9 @@ function DemoPartnerPortal({ anchorName, onContinue }: { anchorName: string; onC
       >
         Continue with partner
       </Button>
-      <p className="mt-3 text-caption text-muted">Partner identity checks may be required. Demo content shown.</p>
+      <p className="mt-3 text-caption text-muted">
+        Partner identity checks may be required. Demo content shown.
+      </p>
     </div>
   )
 }

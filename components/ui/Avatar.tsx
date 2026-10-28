@@ -1,8 +1,20 @@
 import { cn } from '@/lib/cn'
 
-const TONES = ['bg-royal-soft text-royal', 'bg-violet-100 text-violet-700', 'bg-sky-50 text-sky-700']
+const TONES = [
+  'bg-royal-soft text-royal',
+  'bg-violet-100 text-violet-700',
+  'bg-sky-50 text-sky-700',
+]
 
-export function Avatar({ initials, size = 'md', className }: { initials: string; size?: 'md' | 'lg'; className?: string }) {
+export function Avatar({
+  initials,
+  size = 'md',
+  className,
+}: {
+  initials: string
+  size?: 'md' | 'lg'
+  className?: string
+}) {
   const tone = TONES[(initials.charCodeAt(0) + (initials.charCodeAt(1) || 0)) % TONES.length]
   return (
     <span

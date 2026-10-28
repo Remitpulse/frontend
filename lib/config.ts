@@ -68,7 +68,10 @@ export const config = {
     origin: env.appOrigin ?? '',
   },
   backendUrl: (env.backendUrl ?? '').replace(/\/$/, ''),
-  sep24AllowedOrigins: (env.sep24Origins ?? '').split(',').map((o) => o.trim()).filter(Boolean),
+  sep24AllowedOrigins: (env.sep24Origins ?? '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean),
   sessionKey: {
     maxAmount: Number(env.sessionMax ?? 50),
     ttlMinutes: Number(env.sessionTtl ?? 30),

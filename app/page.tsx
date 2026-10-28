@@ -6,7 +6,13 @@ import { useEffect, useState } from 'react'
 import { Logo } from '@/components/layout/Logo'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { Button } from '@/components/ui/Button'
-import { ArrowRightIcon, FingerprintIcon, GlobeIcon, HelpIcon, ShieldIcon } from '@/components/ui/Icons'
+import {
+  ArrowRightIcon,
+  FingerprintIcon,
+  GlobeIcon,
+  HelpIcon,
+  ShieldIcon,
+} from '@/components/ui/Icons'
 import { Tag } from '@/components/ui/StatusPill'
 import { usePasskey } from '@/hooks/usePasskey'
 
@@ -38,7 +44,9 @@ export default function WelcomePage() {
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-danger-soft text-danger">
           <HelpIcon size={30} />
         </div>
-        <h1 className="mt-10 text-[28px] font-bold leading-tight text-navy">Let’s try that again.</h1>
+        <h1 className="mt-10 text-[28px] font-bold leading-tight text-navy">
+          Let’s try that again.
+        </h1>
         <p className="mt-6 text-body text-muted" role="alert">
           {passkey.error} Your account is safe.
         </p>
@@ -66,14 +74,17 @@ export default function WelcomePage() {
           <br />
           In every transfer.
         </h1>
-        <p className="mt-4 max-w-sm text-[15px] text-slate-300">Send money worldwide in moments, with zero hidden fees.</p>
+        <p className="mt-4 max-w-sm text-[15px] text-slate-300">
+          Send money worldwide in moments, with zero hidden fees.
+        </p>
         <HeroIllustration />
       </section>
 
       <section className="mx-auto w-full max-w-flow px-6 pb-8 pt-7 lg:flex lg:flex-col lg:justify-center">
         <h2 className="text-[22px] font-bold text-navy">Your account. Your fingerprint.</h2>
         <p className="mt-2 text-body text-muted">
-          Sign up securely with Face ID, Touch ID, or your device PIN. No passwords or seed phrases to remember.
+          Sign up securely with Face ID, Touch ID, or your device PIN. No passwords or seed phrases
+          to remember.
         </p>
         <div className="mt-6 space-y-3">
           <Button

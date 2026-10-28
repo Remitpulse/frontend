@@ -1,17 +1,17 @@
-'use client';
+'use client'
 
-import { useEffect } from 'react';
+import { useEffect } from 'react'
 
 export default function Error({
   error,
   reset,
 }: {
-  error: Error & { digest?: string };
-  reset: () => void;
+  error: Error & { digest?: string }
+  reset: () => void
 }) {
   useEffect(() => {
-    console.error(error);
-  }, [error]);
+    console.error(error)
+  }, [error])
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-navy px-6 py-16 text-white">
@@ -22,12 +22,10 @@ export default function Error({
           </span>
         </div>
 
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Something went wrong
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Something went wrong</h1>
         <p className="mt-3 text-sm leading-relaxed text-white/70">
-          We hit an unexpected snag while processing your request. Your funds
-          and transfers are safe — please try again.
+          We hit an unexpected snag while processing your request. Your funds and transfers are safe
+          — please try again.
         </p>
 
         {error.digest ? (
@@ -49,5 +47,5 @@ export default function Error({
         </p>
       </div>
     </main>
-  );
+  )
 }

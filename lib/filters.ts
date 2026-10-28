@@ -5,14 +5,20 @@ export function filterRecipients(recipients: Recipient[], query: string): Recipi
   const q = normalize(query)
   if (!q) return recipients
   return recipients.filter((r) =>
-    [r.firstName, r.lastName, r.country, r.bankName].some((field) => field && normalize(field).includes(q)),
+    [r.firstName, r.lastName, r.country, r.bankName].some(
+      (field) => field && normalize(field).includes(q),
+    ),
   )
 }
 
 export type ActivityStatusFilter = 'all' | TransferState
 
 /** Filters transfer summaries by recipient-name search and/or status. */
-export function filterTransfers(items: TransferSummary[], query: string, status: ActivityStatusFilter = 'all'): TransferSummary[] {
+export function filterTransfers(
+  items: TransferSummary[],
+  query: string,
+  status: ActivityStatusFilter = 'all',
+): TransferSummary[] {
   const q = normalize(query)
   return items.filter((t) => {
     if (status !== 'all' && t.state !== status) return false
@@ -42,9 +48,5 @@ export function summarizeByCurrency(items: TransferSummary[]): CurrencyTotal[] {
 }
 
 function normalize(s: string) {
-  return s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .trim()
-    .toLowerCase()
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase()
 }

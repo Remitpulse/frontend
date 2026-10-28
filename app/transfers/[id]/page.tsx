@@ -73,14 +73,21 @@ function TrackerContent() {
 
       <div className="mt-6">
         <Tag tone={done ? 'mint' : 'royal'}>
-          {done ? 'Transfer complete' : status.state === 'awaiting_funding' ? 'Awaiting funding' : 'Transfer in progress'}
+          {done
+            ? 'Transfer complete'
+            : status.state === 'awaiting_funding'
+              ? 'Awaiting funding'
+              : 'Transfer in progress'}
         </Tag>
       </div>
       <h2 className="mt-4 text-[26px] font-bold leading-tight text-navy" aria-live="polite">
         {headline}
       </h2>
       <p className="mt-2 text-body text-muted">
-        {done ? 'Arrived safely.' : status.message ?? (isCash ? 'Ready for pickup in minutes' : 'Expected in under 1 minute')}
+        {done
+          ? 'Arrived safely.'
+          : (status.message ??
+            (isCash ? 'Ready for pickup in minutes' : 'Expected in under 1 minute'))}
       </p>
       <p className="mt-4 text-[30px] font-bold tracking-tight text-navy">
         {formatMoney(status.receiveAmount)} {status.receiveCurrency}
@@ -96,7 +103,11 @@ function TrackerContent() {
           value={
             <span className="inline-flex items-center gap-3">
               {status.reference}
-              <button onClick={() => copy(status.reference, 'ref')} aria-label="Copy reference" className="text-muted hover:text-ink">
+              <button
+                onClick={() => copy(status.reference, 'ref')}
+                aria-label="Copy reference"
+                className="text-muted hover:text-ink"
+              >
                 <CopyIcon size={18} />
               </button>
             </span>
@@ -108,7 +119,12 @@ function TrackerContent() {
           <Row
             label="Stellar tx"
             value={
-              <a href={explorerTxUrl(status.txHash)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-royal">
+              <a
+                href={explorerTxUrl(status.txHash)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-royal"
+              >
                 {status.txHash.slice(0, 8)}… <ExternalIcon size={14} />
               </a>
             }
@@ -122,7 +138,11 @@ function TrackerContent() {
         {copied && <span className="ml-auto text-muted">Copied</span>}
       </p>
 
-      <Button className="mt-5" icon={<LinkIcon />} onClick={() => copy(window.location.href, 'link')}>
+      <Button
+        className="mt-5"
+        icon={<LinkIcon />}
+        onClick={() => copy(window.location.href, 'link')}
+      >
         Share tracking link
       </Button>
       <Link href="/dashboard" className="mt-4 block text-center text-body font-semibold text-royal">

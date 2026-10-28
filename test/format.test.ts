@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { formatCountdown, formatMoney, greeting, initials, maskAccount, shortAddress } from '@/lib/format'
+import {
+  formatCountdown,
+  formatMoney,
+  greeting,
+  initials,
+  maskAccount,
+  shortAddress,
+} from '@/lib/format'
 
 describe('formatMoney', () => {
   it('formats numbers and numeric strings with 2 decimals by default', () => {

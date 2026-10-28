@@ -36,11 +36,15 @@ export default function SettingsPage() {
           </span>
           <div className="flex-1">
             <p className="font-semibold text-ink">This device</p>
-            <p className="text-caption text-muted">Credential {shortAddress(session.credentialId)}</p>
+            <p className="text-caption text-muted">
+              Credential {shortAddress(session.credentialId)}
+            </p>
           </div>
           <span className="rounded-full bg-mint-soft px-3 py-1 text-xs text-mint-dark">Active</span>
         </Card>
-        <p className="mt-2 text-caption text-muted">Your biometric information stays on your device. RemitPulse never receives it.</p>
+        <p className="mt-2 text-caption text-muted">
+          Your biometric information stays on your device. RemitPulse never receives it.
+        </p>
       </section>
 
       <section className="mt-8" aria-labelledby="quick-h">
@@ -72,7 +76,12 @@ export default function SettingsPage() {
                 Turn off on this device
               </Button>
             ) : (
-              <Button icon={<FingerprintIcon />} loading={sessionKey.issuing} disabled={!sessionKey.supported} onClick={() => sessionKey.issue().catch(() => {})}>
+              <Button
+                icon={<FingerprintIcon />}
+                loading={sessionKey.issuing}
+                disabled={!sessionKey.supported}
+                onClick={() => sessionKey.issue().catch(() => {})}
+              >
                 Turn on quick send
               </Button>
             )}
@@ -93,12 +102,20 @@ export default function SettingsPage() {
           <Row
             label="Address"
             value={
-              <a href={explorerContractUrl(session.contractId)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-royal">
+              <a
+                href={explorerContractUrl(session.contractId)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-royal"
+              >
                 {shortAddress(session.contractId)} <ExternalIcon size={14} />
               </a>
             }
           />
-          <Row label="Network" value={config.network === 'mainnet' ? 'Stellar Mainnet' : 'Stellar Testnet'} />
+          <Row
+            label="Network"
+            value={config.network === 'mainnet' ? 'Stellar Mainnet' : 'Stellar Testnet'}
+          />
           <Row label="Fees" value="Sponsored by RemitPulse" />
         </Card>
       </section>
@@ -107,7 +124,9 @@ export default function SettingsPage() {
         {confirmLogout ? (
           <Card className="p-4">
             <p className="font-semibold text-ink">Log out of RemitPulse?</p>
-            <p className="mt-1 text-caption text-muted">You can log back in any time with your passkey. Quick send will be turned off.</p>
+            <p className="mt-1 text-caption text-muted">
+              You can log back in any time with your passkey. Quick send will be turned off.
+            </p>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <Button variant="secondary" onClick={() => setConfirmLogout(false)}>
                 Cancel

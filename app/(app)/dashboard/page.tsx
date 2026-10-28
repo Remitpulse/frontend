@@ -24,7 +24,10 @@ export default function DashboardPage() {
 
   const balanceKey = session ? `balance:${session.contractId}` : null
   const { data: balance } = useAsyncData(balanceKey, () => api.getBalance(session!.contractId))
-  const { data: recipients, loading: recipientsLoading } = useAsyncData(session ? 'recipients' : null, api.listRecipients)
+  const { data: recipients, loading: recipientsLoading } = useAsyncData(
+    session ? 'recipients' : null,
+    api.listRecipients,
+  )
   const {
     data: activity,
     loading: activityLoading,
@@ -33,7 +36,10 @@ export default function DashboardPage() {
   } = useAsyncData(session ? 'transfers' : null, api.listTransfers)
 
   const totals = useMemo(() => summarizeByCurrency(activity ?? []), [activity])
-  const name = session?.displayName && session.displayName !== 'RemitPulse account' ? `, ${session.displayName}` : ''
+  const name =
+    session?.displayName && session.displayName !== 'RemitPulse account'
+      ? `, ${session.displayName}`
+      : ''
 
   return (
     <main className="mx-auto max-w-3xl px-6 pb-8 pt-6 lg:px-10 lg:pt-10">
@@ -47,11 +53,18 @@ export default function DashboardPage() {
       </h1>
       <p className="mt-1 text-body text-muted">A little closer, wherever you are.</p>
 
-      <section className="animate-fade-in mt-6 rounded-card bg-navy p-5 text-white" aria-label="Wallet balance">
+      <section
+        className="animate-fade-in mt-6 rounded-card bg-navy p-5 text-white"
+        aria-label="Wallet balance"
+      >
         <p className="text-body text-slate-300">Available balance</p>
         <div className="mt-2 flex items-center justify-between">
-          <p className="text-[34px] font-bold tracking-tight">{balance ? `$${formatMoney(balance.amount)}` : '—'}</p>
-          <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-sky-100">{balance?.asset ?? 'USDC'}</span>
+          <p className="text-[34px] font-bold tracking-tight">
+            {balance ? `$${formatMoney(balance.amount)}` : '—'}
+          </p>
+          <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-sky-100">
+            {balance?.asset ?? 'USDC'}
+          </span>
         </div>
         <div className="mt-5 grid grid-cols-[1fr_auto] gap-3">
           <ButtonLink href="/send" icon={<ArrowRightIcon />}>
@@ -93,7 +106,11 @@ export default function DashboardPage() {
               </li>
             ))}
             <li>
-              <Link href="/send" onClick={() => update({ recipient: null })} className="flex w-16 flex-col items-center gap-2 text-[13px] text-ink">
+              <Link
+                href="/send"
+                onClick={() => update({ recipient: null })}
+                className="flex w-16 flex-col items-center gap-2 text-[13px] text-ink"
+              >
                 <span className="flex h-[52px] w-[52px] items-center justify-center rounded-full border border-border bg-white text-royal">
                   <PlusIcon />
                 </span>
@@ -149,8 +166,13 @@ function EmptyActivity() {
         <SendIcon size={18} />
       </span>
       <p className="mt-4 text-lg font-semibold text-ink">Your first hello starts here.</p>
-      <p className="mt-2 text-body text-muted">Send money to someone who matters. Your transfers will appear here.</p>
-      <Link href="/send" className="mt-4 inline-flex items-center gap-2 text-body font-semibold text-royal">
+      <p className="mt-2 text-body text-muted">
+        Send money to someone who matters. Your transfers will appear here.
+      </p>
+      <Link
+        href="/send"
+        className="mt-4 inline-flex items-center gap-2 text-body font-semibold text-royal"
+      >
         Send your first transfer <ArrowRightIcon size={16} />
       </Link>
     </div>

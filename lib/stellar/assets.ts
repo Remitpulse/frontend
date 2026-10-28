@@ -44,10 +44,42 @@ export const SEND_OPTIONS: SendOption[] = [
 
 // Launch corridor is USD → MXN (Figma scope note); BRL/ARS ride on BRLA/ARST.
 export const CORRIDORS: Corridor[] = [
-  { currency: 'MXN', country: 'MX', countryName: 'Mexico', settlementAsset: 'USDC', payoutMethods: ['bank', 'cash'], bankNetwork: 'SPEI', available: true },
-  { currency: 'BRL', country: 'BR', countryName: 'Brazil', settlementAsset: 'BRLA', payoutMethods: ['bank'], bankNetwork: 'PIX', available: true },
-  { currency: 'ARS', country: 'AR', countryName: 'Argentina', settlementAsset: 'ARST', payoutMethods: ['bank'], bankNetwork: 'CVU', available: true },
-  { currency: 'EUR', country: 'EU', countryName: 'Eurozone', settlementAsset: 'EURC', payoutMethods: ['bank'], bankNetwork: 'SEPA', available: true },
+  {
+    currency: 'MXN',
+    country: 'MX',
+    countryName: 'Mexico',
+    settlementAsset: 'USDC',
+    payoutMethods: ['bank', 'cash'],
+    bankNetwork: 'SPEI',
+    available: true,
+  },
+  {
+    currency: 'BRL',
+    country: 'BR',
+    countryName: 'Brazil',
+    settlementAsset: 'BRLA',
+    payoutMethods: ['bank'],
+    bankNetwork: 'PIX',
+    available: true,
+  },
+  {
+    currency: 'ARS',
+    country: 'AR',
+    countryName: 'Argentina',
+    settlementAsset: 'ARST',
+    payoutMethods: ['bank'],
+    bankNetwork: 'CVU',
+    available: true,
+  },
+  {
+    currency: 'EUR',
+    country: 'EU',
+    countryName: 'Eurozone',
+    settlementAsset: 'EURC',
+    payoutMethods: ['bank'],
+    bankNetwork: 'SEPA',
+    available: true,
+  },
 ]
 
 export function assetContractId(code: AssetCode): string {

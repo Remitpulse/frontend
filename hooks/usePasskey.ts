@@ -1,7 +1,12 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { WebAuthnError, browserSupportsWebAuthn, startAuthentication, startRegistration } from '@simplewebauthn/browser'
+import {
+  WebAuthnError,
+  browserSupportsWebAuthn,
+  startAuthentication,
+  startRegistration,
+} from '@simplewebauthn/browser'
 import type { xdr } from '@stellar/stellar-sdk'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { api } from '@/lib/api/client'
@@ -70,7 +75,7 @@ export function usePasskey() {
   const [status, setStatus] = useState<PasskeyStatus>('idle')
   const [error, setError] = useState<string | null>(null)
 
-  const run = useCallback(async <T,>(fn: () => Promise<T>): Promise<T> => {
+  const run = useCallback(async <T>(fn: () => Promise<T>): Promise<T> => {
     setError(null)
     setStatus('prompting')
     try {
@@ -88,7 +93,8 @@ export function usePasskey() {
   const register = useCallback(
     (displayName: string) =>
       run(async () => {
-        if (!browserSupportsWebAuthn()) throw Object.assign(new Error(), { name: 'NotSupportedError' })
+        if (!browserSupportsWebAuthn())
+          throw Object.assign(new Error(), { name: 'NotSupportedError' })
         localStorage.setItem('rp-display-name', displayName)
         const { options } = await api.registerOptions(displayName)
         const response = await startRegistration({
@@ -112,9 +118,12 @@ export function usePasskey() {
   const login = useCallback(
     () =>
       run(async () => {
-        if (!browserSupportsWebAuthn()) throw Object.assign(new Error(), { name: 'NotSupportedError' })
+        if (!browserSupportsWebAuthn())
+          throw Object.assign(new Error(), { name: 'NotSupportedError' })
         const { options } = await api.loginOptions()
-        const response = await startAuthentication({ optionsJSON: { ...options, rpId: options.rpId ?? config.webauthn.rpId } })
+        const response = await startAuthentication({
+          optionsJSON: { ...options, rpId: options.rpId ?? config.webauthn.rpId },
+        })
         setStatus('verifying')
         const s = await api.loginVerify({ response })
         signIn(s)
@@ -145,7 +154,10 @@ export function usePasskey() {
         })
         setStatus('verifying')
 
-        verifyClientData(response.response.clientDataJSON, { challenge: payload, type: 'webauthn.get' })
+        verifyClientData(response.response.clientDataJSON, {
+          challenge: payload,
+          type: 'webauthn.get',
+        })
 
         // DER SEQUENCE{r, s} → 64-byte r||s, with s folded into the low half of n.
         const signature = derToCompactLowS(base64UrlToBytes(response.response.signature))
@@ -161,7 +173,10 @@ export function usePasskey() {
   )
 
   /** `AuthSigner` adapter for `lib/stellar/smartAccount`. */
-  const signer = useCallback(async (payload: Uint8Array) => (await signPayload(payload)).scVal, [signPayload])
+  const signer = useCallback(
+    async (payload: Uint8Array) => (await signPayload(payload)).scVal,
+    [signPayload],
+  )
 
   return {
     status,

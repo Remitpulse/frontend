@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from '@/components/ui/Skeleton'
 
 function RowSkeleton() {
   return (
@@ -6,7 +6,7 @@ function RowSkeleton() {
       <Skeleton className="h-4 w-24 rounded-md" />
       <Skeleton className="h-4 w-32 rounded-md" />
     </div>
-  );
+  )
 }
 
 export default function TransferDetailLoading() {
@@ -56,5 +56,5 @@ export default function TransferDetailLoading() {
         </div>
       </div>
     </div>
-  );
+  )
 }

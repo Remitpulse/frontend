@@ -31,7 +31,9 @@ export function AppShell({ children }: { children: ReactNode }) {
               aria-current={isActive(href) ? 'page' : undefined}
               className={cn(
                 'flex items-center gap-3 rounded-control px-3 py-2.5 text-body font-medium',
-                isActive(href) ? 'bg-royal-soft text-royal' : 'text-muted hover:bg-surface hover:text-ink',
+                isActive(href)
+                  ? 'bg-royal-soft text-royal'
+                  : 'text-muted hover:bg-surface hover:text-ink',
               )}
             >
               <I size={20} />
@@ -52,7 +54,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             key={href}
             href={href}
             aria-current={isActive(href) ? 'page' : undefined}
-            className={cn('flex flex-col items-center gap-1 py-3 text-caption', isActive(href) ? 'text-royal' : 'text-muted')}
+            className={cn(
+              'flex flex-col items-center gap-1 py-3 text-caption',
+              isActive(href) ? 'text-royal' : 'text-muted',
+            )}
           >
             <I size={22} />
             {label}

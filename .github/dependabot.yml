@@ -1,26 +1,26 @@
 version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
+      interval: 'weekly'
     groups:
       next-react:
         patterns:
-          - "next"
-          - "react"
-          - "react-dom"
-          - "@types/react"
-          - "@types/react-dom"
+          - 'next'
+          - 'react'
+          - 'react-dom'
+          - '@types/react'
+          - '@types/react-dom'
     open-pull-requests-limit: 10
     commit-message:
-      prefix: "chore"
-      include: "scope"
+      prefix: 'chore'
+      include: 'scope'
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "weekly"
+      interval: 'weekly'
     commit-message:
-      prefix: "chore"
-      include: "scope"
+      prefix: 'chore'
+      include: 'scope'

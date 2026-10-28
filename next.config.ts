@@ -1,8 +1,5 @@
 import type { NextConfig } from 'next'
 
-const backend = process.env.NEXT_PUBLIC_BACKEND_URL ?? ''
-const anchorOrigins = (process.env.NEXT_PUBLIC_SEP24_ALLOWED_ORIGINS ?? '').split(',').filter(Boolean)
-
 // WebAuthn requires a secure context; these headers keep the passkey surface tight.
 // The Content-Security-Policy is generated per-request in middleware.ts so that
 // script-src can use a nonce instead of 'unsafe-inline'. Keep the remaining
@@ -21,7 +18,11 @@ const nextConfig: NextConfig = {
         headers: [
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'Permissions-Policy', value: 'publickey-credentials-get=(self), publickey-credentials-create=(self), camera=(), microphone=(), geolocation=()' },
+          {
+            key: 'Permissions-Policy',
+            value:
+              'publickey-credentials-get=(self), publickey-credentials-create=(self), camera=(), microphone=(), geolocation=()',
+          },
         ],
       },
     ]

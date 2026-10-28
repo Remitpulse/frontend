@@ -32,7 +32,12 @@ describe('signature ScVals', () => {
   it('validates lengths', () => {
     expect(() => ed25519SignatureScVal(new Uint8Array(31), new Uint8Array(64))).toThrow()
     expect(() =>
-      webAuthnSignatureScVal({ authenticatorData: new Uint8Array(), clientDataJSON: new Uint8Array(), credentialId: new Uint8Array(), signature: new Uint8Array(70) }),
+      webAuthnSignatureScVal({
+        authenticatorData: new Uint8Array(),
+        clientDataJSON: new Uint8Array(),
+        credentialId: new Uint8Array(),
+        signature: new Uint8Array(70),
+      }),
     ).toThrow()
   })
 })

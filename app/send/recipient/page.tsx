@@ -44,7 +44,12 @@ export default function RecipientPage() {
 
   useEffect(() => {
     api.listRecipients().then(
-      (all) => setSaved(all.filter((r) => r.country === corridor.country && r.payoutMethod === draft.payoutMethod)),
+      (all) =>
+        setSaved(
+          all.filter(
+            (r) => r.country === corridor.country && r.payoutMethod === draft.payoutMethod,
+          ),
+        ),
       () => setSaved([]),
     )
   }, [corridor.country, draft.payoutMethod])
@@ -59,7 +64,8 @@ export default function RecipientPage() {
       const err = rule.validate(form.accountNumber ?? '')
       if (err) e.accountNumber = err
     }
-    if (isCash && !(form.mobile ?? '').replace(/\D/g, '').length) e.mobile = 'A mobile number is required for cash pickup.'
+    if (isCash && !(form.mobile ?? '').replace(/\D/g, '').length)
+      e.mobile = 'A mobile number is required for cash pickup.'
     return e
   }
 
@@ -82,11 +88,19 @@ export default function RecipientPage() {
 
   return (
     <FlowPage>
-      <FlowHeader title="Recipient details" backHref="/send" step={{ current: 2, total: 3, label: 'Recipient' }} />
+      <FlowHeader
+        title="Recipient details"
+        backHref="/send"
+        step={{ current: 2, total: 3, label: 'Recipient' }}
+      />
 
-      <h2 className="mt-6 text-[26px] font-bold leading-tight text-navy">Who are you sending to?</h2>
+      <h2 className="mt-6 text-[26px] font-bold leading-tight text-navy">
+        Who are you sending to?
+      </h2>
       <p className="mt-2 text-body text-muted">
-        {isCash ? 'Use their name exactly as it appears on their photo ID.' : 'Use their name as it appears on their bank account.'}
+        {isCash
+          ? 'Use their name exactly as it appears on their photo ID.'
+          : 'Use their name as it appears on their bank account.'}
       </p>
 
       <form onSubmit={onSubmit} noValidate className="mt-6 space-y-5">
@@ -105,7 +119,15 @@ export default function RecipientPage() {
                   const r = saved.find((s) => s.id === e.target.value)
                   setErrors({})
                   setForm(
-                    r ?? { firstName: '', lastName: '', country: corridor.country, payoutMethod: draft.payoutMethod, bankName: rule.banks[0], accountNumber: '', mobile: '' },
+                    r ?? {
+                      firstName: '',
+                      lastName: '',
+                      country: corridor.country,
+                      payoutMethod: draft.payoutMethod,
+                      bankName: rule.banks[0],
+                      accountNumber: '',
+                      mobile: '',
+                    },
                   )
                 }}
               >
@@ -121,22 +143,46 @@ export default function RecipientPage() {
         )}
 
         <div className="grid grid-cols-2 gap-3">
-          <TextField label="First name" autoComplete="off" value={form.firstName} error={errors.firstName} onChange={(e) => set({ firstName: e.target.value })} />
-          <TextField label="Last name" autoComplete="off" value={form.lastName} error={errors.lastName} onChange={(e) => set({ lastName: e.target.value })} />
+          <TextField
+            label="First name"
+            autoComplete="off"
+            value={form.firstName}
+            error={errors.firstName}
+            onChange={(e) => set({ firstName: e.target.value })}
+          />
+          <TextField
+            label="Last name"
+            autoComplete="off"
+            value={form.lastName}
+            error={errors.lastName}
+            onChange={(e) => set({ lastName: e.target.value })}
+          />
         </div>
 
         {!isCash && (
           <>
-            <SelectField label="Bank" value={form.bankName} onChange={(e) => set({ bankName: e.target.value })}>
+            <SelectField
+              label="Bank"
+              value={form.bankName}
+              onChange={(e) => set({ bankName: e.target.value })}
+            >
               {rule.banks.map((b) => (
                 <option key={b}>{b}</option>
               ))}
             </SelectField>
             <TextField
               label={rule.label}
-              inputMode={draft.receiveCurrency === 'MXN' || draft.receiveCurrency === 'ARS' ? 'numeric' : 'text'}
+              inputMode={
+                draft.receiveCurrency === 'MXN' || draft.receiveCurrency === 'ARS'
+                  ? 'numeric'
+                  : 'text'
+              }
               placeholder={rule.placeholder}
-              value={draft.receiveCurrency === 'MXN' ? formatClabe(form.accountNumber ?? '') : form.accountNumber}
+              value={
+                draft.receiveCurrency === 'MXN'
+                  ? formatClabe(form.accountNumber ?? '')
+                  : form.accountNumber
+              }
               hint={rule.hint}
               error={errors.accountNumber}
               onChange={(e) => set({ accountNumber: e.target.value })}
@@ -149,7 +195,11 @@ export default function RecipientPage() {
           type="tel"
           prefix={rule.dialCode}
           value={(form.mobile ?? '').replace(rule.dialCode, '').trim()}
-          hint={isCash ? 'We’ll text the pickup reference to this number.' : 'We’ll send a text when the money arrives.'}
+          hint={
+            isCash
+              ? 'We’ll text the pickup reference to this number.'
+              : 'We’ll send a text when the money arrives.'
+          }
           error={errors.mobile}
           onChange={(e) => set({ mobile: `${rule.dialCode} ${e.target.value}` })}
         />

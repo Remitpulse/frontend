@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from '@/components/ui/Skeleton'
 
 export default function DashboardLoading() {
   return (
@@ -44,10 +44,7 @@ export default function DashboardLoading() {
       <div className="flex flex-col gap-3">
         <Skeleton className="h-5 w-24 rounded-md" />
         {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="flex items-center gap-3 rounded-xl border border-gray-100 p-3"
-          >
+          <div key={i} className="flex items-center gap-3 rounded-xl border border-gray-100 p-3">
             <Skeleton className="h-10 w-10 rounded-full" />
             <div className="flex flex-1 flex-col gap-2">
               <Skeleton className="h-4 w-32 rounded-md" />
@@ -58,5 +55,5 @@ export default function DashboardLoading() {
         ))}
       </div>
     </div>
-  );
+  )
 }

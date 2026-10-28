@@ -23,14 +23,20 @@ export default function ActivityPage() {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<ActivityStatusFilter>('all')
 
-  const filtered = useMemo(() => filterTransfers(items ?? [], query, status), [items, query, status])
+  const filtered = useMemo(
+    () => filterTransfers(items ?? [], query, status),
+    [items, query, status],
+  )
 
   return (
     <main className="mx-auto max-w-3xl px-6 pb-8 pt-8 lg:px-10 lg:pt-10">
       <h1 className="text-[26px] font-bold text-navy">Activity</h1>
 
       <div className="relative mt-5">
-        <SearchIcon size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
+        <SearchIcon
+          size={18}
+          className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"
+        />
         <input
           type="search"
           value={query}
@@ -41,7 +47,11 @@ export default function ActivityPage() {
         />
       </div>
 
-      <div className="mt-3 flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Filter by status">
+      <div
+        className="mt-3 flex gap-2 overflow-x-auto pb-1"
+        role="group"
+        aria-label="Filter by status"
+      >
         {STATUS_FILTERS.map((f) => (
           <button
             key={f.value}
@@ -49,7 +59,9 @@ export default function ActivityPage() {
             aria-pressed={status === f.value}
             className={cn(
               'shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium',
-              status === f.value ? 'border-royal bg-royal-soft text-royal' : 'border-border bg-white text-muted hover:text-ink',
+              status === f.value
+                ? 'border-royal bg-royal-soft text-royal'
+                : 'border-border bg-white text-muted hover:text-ink',
             )}
           >
             {f.label}
@@ -64,7 +76,9 @@ export default function ActivityPage() {
           <SkeletonList count={5} />
         </div>
       ) : filtered.length === 0 ? (
-        <p className="mt-6 text-body text-muted">{items && items.length > 0 ? 'No transfers match your search.' : 'No transfers yet.'}</p>
+        <p className="mt-6 text-body text-muted">
+          {items && items.length > 0 ? 'No transfers match your search.' : 'No transfers yet.'}
+        </p>
       ) : (
         <div className="animate-fade-in mt-4">
           <ActivityList items={filtered} />

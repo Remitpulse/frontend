@@ -36,7 +36,8 @@ export function useTransferStatus(transferId: string | null) {
         apply(s)
         if (TERMINAL.has(s.state)) return
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Lost connection to transfer updates.')
+        if (!cancelled)
+          setError(err instanceof Error ? err.message : 'Lost connection to transfer updates.')
       }
       if (!cancelled) timer = setTimeout(poll, POLL_MS)
     }

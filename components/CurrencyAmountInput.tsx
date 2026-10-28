@@ -22,10 +22,25 @@ interface Props {
 }
 
 /** "You send / They receive" amount card from 02 · Send money calculator. */
-export function CurrencyAmountInput({ label, amount, onAmountChange, currency, options, onCurrencyChange, readOnly, highlighted, loading }: Props) {
+export function CurrencyAmountInput({
+  label,
+  amount,
+  onAmountChange,
+  currency,
+  options,
+  onCurrencyChange,
+  readOnly,
+  highlighted,
+  loading,
+}: Props) {
   const id = useId()
   return (
-    <div className={cn('rounded-card border bg-white px-4 py-4', highlighted ? 'border-royal' : 'border-border')}>
+    <div
+      className={cn(
+        'rounded-card border bg-white px-4 py-4',
+        highlighted ? 'border-royal' : 'border-border',
+      )}
+    >
       <label htmlFor={`${id}-amt`} className="text-[13px] text-muted">
         {label}
       </label>
@@ -57,7 +72,7 @@ export function CurrencyAmountInput({ label, amount, onAmountChange, currency, o
         >
           {options.map((o) => (
             <option key={o.value} value={o.value}>
-              {o.country}  {o.label}
+              {o.country} {o.label}
             </option>
           ))}
         </select>

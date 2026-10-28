@@ -36,7 +36,11 @@ export default function ReviewPage() {
   const isCash = recipient.payoutMethod === 'cash'
   const quick = transfer.willUseSessionKey(quote.sendAmount)
   const sendSym = quote.sendCurrency === 'EUR' ? '€' : '$'
-  const totalFees = (Number(quote.fees.platform) + Number(quote.fees.partner) + Number(quote.fees.network)).toFixed(2)
+  const totalFees = (
+    Number(quote.fees.platform) +
+    Number(quote.fees.partner) +
+    Number(quote.fees.network)
+  ).toFixed(2)
 
   const goToTracker = (id: string) => {
     leaving.current = true
@@ -46,7 +50,12 @@ export default function ReviewPage() {
 
   const confirm = async () => {
     try {
-      const res = await transfer.send({ quote, recipient, saveRecipient: draft.saveRecipient, funding: draft.funding })
+      const res = await transfer.send({
+        quote,
+        recipient,
+        saveRecipient: draft.saveRecipient,
+        funding: draft.funding,
+      })
       if (res.sep24) setCreated(res)
       else goToTracker(res.transferId)
     } catch {
@@ -56,17 +65,25 @@ export default function ReviewPage() {
 
   return (
     <FlowPage>
-      <FlowHeader title="Review transfer" backHref="/send/recipient" step={{ current: 3, total: 3, label: 'Confirm' }} />
+      <FlowHeader
+        title="Review transfer"
+        backHref="/send/recipient"
+        step={{ current: 3, total: 3, label: 'Confirm' }}
+      />
 
       <h2 className="mt-6 text-[26px] font-bold leading-tight text-navy">Ready when you are.</h2>
       <p className="mt-2 text-body text-muted">One final look before it’s on its way.</p>
 
       <Card className="mt-6 p-5">
-        <p className="text-caption font-semibold uppercase tracking-wide text-muted">{recipient.firstName} receives</p>
+        <p className="text-caption font-semibold uppercase tracking-wide text-muted">
+          {recipient.firstName} receives
+        </p>
         <p className="mt-2 text-[30px] font-bold tracking-tight text-navy">
           {formatMoney(quote.receiveAmount)} {quote.receiveCurrency}
         </p>
-        <span className="mt-2 inline-block rounded-full bg-mint-soft px-3 py-1 text-[13px] text-mint-dark">{quote.deliveryEstimate}</span>
+        <span className="mt-2 inline-block rounded-full bg-mint-soft px-3 py-1 text-[13px] text-mint-dark">
+          {quote.deliveryEstimate}
+        </span>
 
         <div className="mt-5 flex items-center gap-4 border-t border-border pt-5">
           <Avatar initials={initials(recipient.firstName, recipient.lastName)} />
@@ -75,18 +92,30 @@ export default function ReviewPage() {
               {recipient.firstName} {recipient.lastName}
             </p>
             <p className="text-[13px] text-muted">
-              {isCash ? `Cash pickup · ${recipient.mobile}` : `${recipient.bankName} · ${maskAccount(recipient.accountNumber)}`}
+              {isCash
+                ? `Cash pickup · ${recipient.mobile}`
+                : `${recipient.bankName} · ${maskAccount(recipient.accountNumber)}`}
             </p>
           </div>
         </div>
 
         <div className="mt-5 space-y-3">
-          <Row label="Delivery" value={isCash ? 'Cash pickup · MoneyGram' : `Bank transfer · ${corridor.bankNetwork}`} />
-          <Row label="Exchange rate" value={`1 ${quote.sendCurrency} = ${quote.rate} ${quote.receiveCurrency}`} />
+          <Row
+            label="Delivery"
+            value={isCash ? 'Cash pickup · MoneyGram' : `Bank transfer · ${corridor.bankNetwork}`}
+          />
+          <Row
+            label="Exchange rate"
+            value={`1 ${quote.sendCurrency} = ${quote.rate} ${quote.receiveCurrency}`}
+          />
           <Row label="All fees included" value={`${sendSym}${totalFees}`} />
         </div>
         <div className="mt-4 border-t border-border pt-4">
-          <Row label="Total you pay" strong value={`${sendSym}${formatMoney(quote.totalCost)} ${quote.sendCurrency}`} />
+          <Row
+            label="Total you pay"
+            strong
+            value={`${sendSym}${formatMoney(quote.totalCost)} ${quote.sendCurrency}`}
+          />
         </div>
       </Card>
 
@@ -111,7 +140,11 @@ export default function ReviewPage() {
       </fieldset>
 
       <div className="mt-4 flex gap-3 rounded-control bg-royal-soft p-4 text-[13px] text-muted">
-        {quick ? <BoltIcon className="shrink-0 text-royal" size={20} /> : <ShieldIcon className="shrink-0 text-royal" size={20} />}
+        {quick ? (
+          <BoltIcon className="shrink-0 text-royal" size={20} />
+        ) : (
+          <ShieldIcon className="shrink-0 text-royal" size={20} />
+        )}
         <p>
           {quick
             ? 'Quick send is on for this amount. Your device’s session key approves it without another prompt.'
@@ -125,8 +158,19 @@ export default function ReviewPage() {
         </p>
       )}
 
-      <Button className="mt-5" icon={quick ? <BoltIcon /> : <FingerprintIcon />} loading={transfer.isBusy} onClick={confirm}>
-        {transfer.phase === 'authorizing' ? 'Checking your passkey…' : transfer.phase === 'submitting' ? 'Sending securely…' : quick ? 'Confirm & send' : 'Confirm with passkey'}
+      <Button
+        className="mt-5"
+        icon={quick ? <BoltIcon /> : <FingerprintIcon />}
+        loading={transfer.isBusy}
+        onClick={confirm}
+      >
+        {transfer.phase === 'authorizing'
+          ? 'Checking your passkey…'
+          : transfer.phase === 'submitting'
+            ? 'Sending securely…'
+            : quick
+              ? 'Confirm & send'
+              : 'Confirm with passkey'}
       </Button>
       <p className="mt-3 text-center text-caption text-muted">No network fees. Always.</p>
 
@@ -138,7 +182,10 @@ export default function ReviewPage() {
           url={created.sep24.url}
           anchorName={created.sep24.anchorName}
           transferId={created.transferId}
-          summary={{ amount: `${sendSym}${formatMoney(quote.totalCost)} ${quote.sendCurrency}`, counterparty: `${recipient.firstName} ${recipient.lastName}` }}
+          summary={{
+            amount: `${sendSym}${formatMoney(quote.totalCost)} ${quote.sendCurrency}`,
+            counterparty: `${recipient.firstName} ${recipient.lastName}`,
+          }}
           onComplete={() => goToTracker(created.transferId)}
           onClose={() => goToTracker(created.transferId)}
         />
@@ -167,7 +214,13 @@ function FundingOption(props: {
         <span className="block text-body font-semibold text-ink">{props.title}</span>
         <span className="block text-caption text-muted">{props.detail}</span>
       </span>
-      <input type="radio" name="funding" className="h-4 w-4 accent-royal" checked={selected} onChange={() => props.onSelect(props.value)} />
+      <input
+        type="radio"
+        name="funding"
+        className="h-4 w-4 accent-royal"
+        checked={selected}
+        onChange={() => props.onSelect(props.value)}
+      />
     </label>
   )
 }

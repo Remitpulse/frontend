@@ -36,7 +36,10 @@ function openDb(): Promise<IDBDatabase> {
   })
 }
 
-async function tx<T>(mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
+async function tx<T>(
+  mode: IDBTransactionMode,
+  fn: (store: IDBObjectStore) => IDBRequest<T>,
+): Promise<T> {
   const db = await openDb()
   try {
     return await new Promise<T>((resolve, reject) => {
@@ -54,7 +57,10 @@ export async function generateSessionKey(params: {
   maxAmount: number
   ttlMinutes: number
 }): Promise<SessionKeyRecord> {
-  const pair = (await crypto.subtle.generateKey({ name: 'Ed25519' }, false, ['sign', 'verify'])) as CryptoKeyPair
+  const pair = (await crypto.subtle.generateKey({ name: 'Ed25519' }, false, [
+    'sign',
+    'verify',
+  ])) as CryptoKeyPair
   const publicKey = new Uint8Array(await crypto.subtle.exportKey('raw', pair.publicKey))
   return {
     id: RECORD_ID,
@@ -87,15 +93,40 @@ export async function clearSessionKey(): Promise<void> {
   await tx('readwrite', (s) => s.delete(RECORD_ID))
 }
 
-export async function signWithSessionKey(record: SessionKeyRecord, payload: Uint8Array): Promise<Uint8Array> {
-  return new Uint8Array(await crypto.subtle.sign({ name: 'Ed25519' }, record.privateKey, payload as BufferSource))
+export async function signWithSessionKey(
+  record: SessionKeyRecord,
+  payload: Uint8Array,
+): Promise<Uint8Array> {
+  return new Uint8Array(
+    await crypto.subtle.sign({ name: 'Ed25519' }, record.privateKey, payload as BufferSource),
+  )
 }
 
-export async function verifyWithSessionKey(record: SessionKeyRecord, payload: Uint8Array, signature: Uint8Array): Promise<boolean> {
-  const publicKey = await crypto.subtle.importKey('raw', record.publicKey as BufferSource, { name: 'Ed25519' }, false, ['verify'])
-  return crypto.subtle.verify({ name: 'Ed25519' }, publicKey, signature as BufferSource, payload as BufferSource)
+export async function verifyWithSessionKey(
+  record: SessionKeyRecord,
+  payload: Uint8Array,
+  signature: Uint8Array,
+): Promise<boolean> {
+  const publicKey = await crypto.subtle.importKey(
+    'raw',
+    record.publicKey as BufferSource,
+    { name: 'Ed25519' },
+    false,
+    ['verify'],
+  )
+  return crypto.subtle.verify(
+    { name: 'Ed25519' },
+    publicKey,
+    signature as BufferSource,
+    payload as BufferSource,
+  )
 }
 
-export function sessionKeyCovers(record: SessionKeyRecord | null, amount: number): record is SessionKeyRecord {
-  return !!record && record.registered && record.expiresAt > Date.now() && amount <= record.maxAmount
+export function sessionKeyCovers(
+  record: SessionKeyRecord | null,
+  amount: number,
+): record is SessionKeyRecord {
+  return (
+    !!record && record.registered && record.expiresAt > Date.now() && amount <= record.maxAmount
+  )
 }
