@@ -1,15 +1,18 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
+import { useState } from 'react'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { Sep24Modal } from '@/components/Sep24Modal'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { CopyIcon, PlusIcon, SendIcon } from '@/components/ui/Icons'
+import { useAsyncData } from '@/hooks/useAsyncData'
 import { api } from '@/lib/api/client'
 import { config, type AssetCode } from '@/lib/config'
 import { formatMoney, shortAddress } from '@/lib/format'
 import { STABLECOINS } from '@/lib/stellar/assets'
+
+const Sep24Modal = dynamic(() => import('@/components/Sep24Modal').then((m) => m.Sep24Modal))
 
 type Flow = { kind: 'deposit' | 'withdraw'; id: string; url: string | null; anchorName: string }
 
@@ -17,16 +20,14 @@ type Flow = { kind: 'deposit' | 'withdraw'; id: string; url: string | null; anch
 export default function WalletPage() {
   const { session } = useAuth()
   const [asset, setAsset] = useState<AssetCode>('USDC')
-  const [balance, setBalance] = useState<string | null>(null)
+  const balanceKey = session ? `balance:${session.contractId}` : null
+  const { data: balance, reload: reloadBalance } = useAsyncData(balanceKey, () => api.getBalance(session!.contractId).then((b) => b.amount))
   const [flow, setFlow] = useState<Flow | null>(null)
   const [starting, setStarting] = useState<Flow['kind'] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
-  const loadBalance = () => {
-    if (session) api.getBalance(session.contractId).then((b) => setBalance(b.amount), () => setBalance(null))
-  }
-  useEffect(loadBalance, [session])
+  const loadBalance = reloadBalance
 
   const start = async (kind: Flow['kind']) => {
     setStarting(kind)

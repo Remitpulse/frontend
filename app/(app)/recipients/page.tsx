@@ -1,32 +1,56 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTransferDraft } from '@/components/providers/TransferDraftProvider'
 import { Avatar } from '@/components/ui/Avatar'
-import { ButtonLink, Spinner } from '@/components/ui/Button'
-import { ChevronRightIcon, PlusIcon } from '@/components/ui/Icons'
+import { ButtonLink } from '@/components/ui/Button'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { ChevronRightIcon, PlusIcon, SearchIcon } from '@/components/ui/Icons'
+import { ListSkeleton } from '@/components/ui/Skeleton'
+import { useAsyncData } from '@/hooks/useAsyncData'
 import { api } from '@/lib/api/client'
-import type { Recipient } from '@/lib/api/types'
+import { filterRecipients } from '@/lib/filters'
 import { initials, maskAccount } from '@/lib/format'
 import { CORRIDORS } from '@/lib/stellar/assets'
 
 /** M12 · Recipients. */
 export default function RecipientsPage() {
   const { update } = useTransferDraft()
-  const [items, setItems] = useState<Recipient[] | null>(null)
-  useEffect(() => {
-    api.listRecipients().then(setItems, () => setItems([]))
-  }, [])
+  const { data: items, loading, error, reload } = useAsyncData('recipients', api.listRecipients)
+  const [query, setQuery] = useState('')
+
+  const filtered = useMemo(() => filterRecipients(items ?? [], query), [items, query])
 
   return (
     <main className="mx-auto max-w-flow px-6 pb-8 pt-8 lg:pt-10">
       <h1 className="text-[26px] font-bold text-navy">Recipients</h1>
-      {!items ? (
-        <Spinner className="mt-10 h-6 w-6 text-royal" />
+
+      {items && items.length > 0 && (
+        <div className="relative mt-5">
+          <SearchIcon size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by name, country, or bank"
+            aria-label="Search recipients"
+            className="h-11 w-full rounded-control border border-border bg-white pl-10 pr-4 text-[15px] text-ink placeholder:text-slate-400 focus:border-royal focus:outline-none focus:ring-2 focus:ring-royal/20"
+          />
+        </div>
+      )}
+
+      {error ? (
+        <ErrorState message={error} onRetry={reload} />
+      ) : loading ? (
+        <div className="mt-4">
+          <ListSkeleton rows={4} />
+        </div>
+      ) : filtered.length === 0 ? (
+        <p className="mt-6 text-body text-muted">{items && items.length > 0 ? 'No recipients match your search.' : 'No recipients yet.'}</p>
       ) : (
-        <ul className="mt-4 divide-y divide-border">
-          {items.map((r) => {
+        <ul className="animate-fade-in mt-4 divide-y divide-border">
+          {filtered.map((r) => {
             const corridor = CORRIDORS.find((c) => c.country === r.country)
             return (
               <li key={r.id}>
