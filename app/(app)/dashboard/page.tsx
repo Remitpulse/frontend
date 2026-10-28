@@ -1,33 +1,38 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useMemo } from 'react'
 import { ActivityList } from '@/components/ActivityList'
+import { SpendByCurrency } from '@/components/SpendByCurrency'
 import { Logo } from '@/components/layout/Logo'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { useTransferDraft } from '@/components/providers/TransferDraftProvider'
 import { Avatar } from '@/components/ui/Avatar'
 import { ButtonLink } from '@/components/ui/Button'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { ArrowRightIcon, PlusIcon, SendIcon } from '@/components/ui/Icons'
+import { SkeletonCircle, SkeletonList } from '@/components/ui/Skeleton'
+import { useAsyncData } from '@/hooks/useAsyncData'
 import { api } from '@/lib/api/client'
-import type { Recipient, TransferSummary } from '@/lib/api/types'
+import { summarizeByCurrency } from '@/lib/filters'
 import { formatMoney, greeting, initials } from '@/lib/format'
 
 /** 07 · Mobile dashboard & wallet / 09 · Desktop dashboard. */
 export default function DashboardPage() {
   const { session } = useAuth()
   const { update } = useTransferDraft()
-  const [balance, setBalance] = useState<{ asset: string; amount: string } | null>(null)
-  const [recipients, setRecipients] = useState<Recipient[]>([])
-  const [activity, setActivity] = useState<TransferSummary[] | null>(null)
 
-  useEffect(() => {
-    if (!session) return
-    api.getBalance(session.contractId).then(setBalance, () => setBalance(null))
-    api.listRecipients().then(setRecipients, () => setRecipients([]))
-    api.listTransfers().then(setActivity, () => setActivity([]))
-  }, [session])
+  const balanceKey = session ? `balance:${session.contractId}` : null
+  const { data: balance } = useAsyncData(balanceKey, () => api.getBalance(session!.contractId))
+  const { data: recipients, loading: recipientsLoading } = useAsyncData(session ? 'recipients' : null, api.listRecipients)
+  const {
+    data: activity,
+    loading: activityLoading,
+    error: activityError,
+    reload: reloadActivity,
+  } = useAsyncData(session ? 'transfers' : null, api.listTransfers)
 
+  const totals = useMemo(() => summarizeByCurrency(activity ?? []), [activity])
   const name = session?.displayName && session.displayName !== 'RemitPulse account' ? `, ${session.displayName}` : ''
 
   return (
@@ -42,7 +47,7 @@ export default function DashboardPage() {
       </h1>
       <p className="mt-1 text-body text-muted">A little closer, wherever you are.</p>
 
-      <section className="mt-6 rounded-card bg-navy p-5 text-white" aria-label="Wallet balance">
+      <section className="animate-fade-in mt-6 rounded-card bg-navy p-5 text-white" aria-label="Wallet balance">
         <p className="text-body text-slate-300">Available balance</p>
         <div className="mt-2 flex items-center justify-between">
           <p className="text-[34px] font-bold tracking-tight">{balance ? `$${formatMoney(balance.amount)}` : '—'}</p>
@@ -67,29 +72,48 @@ export default function DashboardPage() {
             View all
           </Link>
         </div>
-        <ul className="mt-4 flex gap-6 overflow-x-auto pb-1">
-          {recipients.slice(0, 3).map((r) => (
-            <li key={r.id}>
-              <Link
-                href="/send"
-                onClick={() => update({ recipient: r, payoutMethod: r.payoutMethod })}
-                className="flex w-16 flex-col items-center gap-2 text-[13px] text-ink"
-              >
-                <Avatar initials={initials(r.firstName, r.lastName)} size="lg" />
-                {r.firstName}
+        {recipientsLoading ? (
+          <div className="mt-4 flex gap-6">
+            {[0, 1, 2].map((i) => (
+              <SkeletonCircle key={i} size={52} />
+            ))}
+          </div>
+        ) : (
+          <ul className="mt-4 flex gap-6 overflow-x-auto pb-1">
+            {(recipients ?? []).slice(0, 3).map((r) => (
+              <li key={r.id}>
+                <Link
+                  href="/send"
+                  onClick={() => update({ recipient: r, payoutMethod: r.payoutMethod })}
+                  className="flex w-16 flex-col items-center gap-2 text-[13px] text-ink"
+                >
+                  <Avatar initials={initials(r.firstName, r.lastName)} size="lg" />
+                  {r.firstName}
+                </Link>
+              </li>
+            ))}
+            <li>
+              <Link href="/send" onClick={() => update({ recipient: null })} className="flex w-16 flex-col items-center gap-2 text-[13px] text-ink">
+                <span className="flex h-[52px] w-[52px] items-center justify-center rounded-full border border-border bg-white text-royal">
+                  <PlusIcon />
+                </span>
+                New
               </Link>
             </li>
-          ))}
-          <li>
-            <Link href="/send" onClick={() => update({ recipient: null })} className="flex w-16 flex-col items-center gap-2 text-[13px] text-ink">
-              <span className="flex h-[52px] w-[52px] items-center justify-center rounded-full border border-border bg-white text-royal">
-                <PlusIcon />
-              </span>
-              New
-            </Link>
-          </li>
-        </ul>
+          </ul>
+        )}
       </section>
+
+      {totals.length > 0 && (
+        <section className="mt-8" aria-labelledby="spend-insight">
+          <h2 id="spend-insight" className="text-lg font-semibold text-ink">
+            Sent by currency
+          </h2>
+          <div className="mt-4 rounded-card border border-border bg-white p-5">
+            <SpendByCurrency totals={totals} />
+          </div>
+        </section>
+      )}
 
       <section className="mt-8" aria-labelledby="recent">
         <div className="flex items-center justify-between">
@@ -100,7 +124,13 @@ export default function DashboardPage() {
             View all
           </Link>
         </div>
-        {activity && activity.length === 0 ? (
+        {activityError ? (
+          <ErrorState message={activityError} onRetry={reloadActivity} />
+        ) : activityLoading ? (
+          <div className="mt-2">
+            <SkeletonList count={3} />
+          </div>
+        ) : activity && activity.length === 0 ? (
           <EmptyActivity />
         ) : (
           <div className="mt-2">

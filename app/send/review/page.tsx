@@ -1,10 +1,10 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { FlowHeader, FlowPage } from '@/components/layout/FlowHeader'
 import { useTransferDraft } from '@/components/providers/TransferDraftProvider'
-import { Sep24Modal } from '@/components/Sep24Modal'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
 import { Card, Row } from '@/components/ui/Card'
@@ -14,6 +14,8 @@ import type { CreateTransferResponse, FundingSource } from '@/lib/api/types'
 import { cn } from '@/lib/cn'
 import { formatMoney, initials, maskAccount } from '@/lib/format'
 import { CORRIDORS } from '@/lib/stellar/assets'
+
+const Sep24Modal = dynamic(() => import('@/components/Sep24Modal').then((m) => m.Sep24Modal))
 
 /** 04 · Review & biometric authorization → 05 · Secure partner funding gateway. */
 export default function ReviewPage() {
