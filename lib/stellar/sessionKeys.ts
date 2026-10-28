@@ -91,6 +91,11 @@ export async function signWithSessionKey(record: SessionKeyRecord, payload: Uint
   return new Uint8Array(await crypto.subtle.sign({ name: 'Ed25519' }, record.privateKey, payload as BufferSource))
 }
 
+export async function verifyWithSessionKey(record: SessionKeyRecord, payload: Uint8Array, signature: Uint8Array): Promise<boolean> {
+  const publicKey = await crypto.subtle.importKey('raw', record.publicKey as BufferSource, { name: 'Ed25519' }, false, ['verify'])
+  return crypto.subtle.verify({ name: 'Ed25519' }, publicKey, signature as BufferSource, payload as BufferSource)
+}
+
 export function sessionKeyCovers(record: SessionKeyRecord | null, amount: number): record is SessionKeyRecord {
   return !!record && record.registered && record.expiresAt > Date.now() && amount <= record.maxAmount
 }

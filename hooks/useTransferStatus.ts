@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api/client'
 import type { TransferStatus } from '@/lib/api/types'
 
-const POLL_MS = 2_000
-const TERMINAL = new Set(['completed', 'failed'])
+export const POLL_MS = 2_000
+export const TERMINAL_STATES: ReadonlySet<string> = new Set(['completed', 'failed'])
+const TERMINAL = TERMINAL_STATES
 
 /**
  * Live transfer status. Prefers the backend's SSE stream and falls back to
