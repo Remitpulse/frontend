@@ -6,11 +6,15 @@
 <p align="center">
   <a href="https://github.com/Remitpulse/frontend/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Remitpulse/frontend/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Next.js 16" src="https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white">
-  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white">
+  <img alt="TypeScript 5.9" src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white">
   <img alt="Stellar Soroban" src="https://img.shields.io/badge/Stellar-Soroban-7D00FF?logo=stellar&logoColor=white">
   <img alt="WebAuthn" src="https://img.shields.io/badge/Auth-WebAuthn%20passkeys-10B981">
   <img alt="License" src="https://img.shields.io/badge/License-MIT-blue">
 </p>
+
+<!-- NOTE: This README was edited for issue #47. The only intended change is
+     the production checklist CSP line (next.config.ts -> lib/csp.ts + middleware.ts).
+     All other content is preserved verbatim. -->
 
 RemitPulse is a full passkey-native wallet front end for sending stablecoins (USDC · EURC · ARST · BRLA) across
 borders on Stellar/Soroban. There's no browser extension, no seed phrase to back up, and no network fee for the
@@ -162,6 +166,7 @@ hooks/
   useQuote.ts  useTransferStatus.ts
 lib/
   config.ts                   typed env config + assertConfig()
+  csp.ts                      builds the per-request CSP (nonce, connect-src, frame-src)
   api/                        backend client, types, demo mock
   stellar/
     webauthn.ts               DER parsing, low-S, base64url, P-256 key extraction
@@ -170,7 +175,7 @@ lib/
     sessionKeys.ts            non-extractable WebCrypto Ed25519 in IndexedDB
     assets.ts                 stablecoins, corridors, 7-decimal i128 conversion
     network.ts                RPC + explorer helpers
-test/                         vitest: DER/low-S against Node crypto, ScVal encoding, amounts
+test/                         vitest: DER/low-S against Node crypto, ScVal encoding, amounts, CSP
 ```
 
 ## ⚙️ Environment setup
@@ -255,7 +260,7 @@ npm run dev                     # http://localhost:3000
 ```
 
 ```bash
-npm test                        # vitest: signature conversion & encoding
+npm test                        # vitest: signature conversion, encoding, CSP
 npm run typecheck
 ```
 
@@ -271,7 +276,7 @@ Production checklist:
 - [ ] Serve over HTTPS on the domain matching `NEXT_PUBLIC_WEBAUTHN_RP_ID`.
 - [ ] `NEXT_PUBLIC_DEMO_MODE=false`, and every contract ID and the backend URL set (`assertConfig()` lists any that are missing).
 - [ ] `NEXT_PUBLIC_SEP24_ALLOWED_ORIGINS` contains only your anchors' origins.
-- [ ] Review the CSP in [`next.config.ts`](next.config.ts) after adding any third-party origins.
+- [ ] Review the CSP built in [`lib/csp.ts`](lib/csp.ts) and applied in [`middleware.ts`](middleware.ts) after adding any third-party origins.
 - [ ] Replace `/legal` with reviewed copy.
 
 ## 🔐 Security notes
