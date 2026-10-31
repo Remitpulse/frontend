@@ -44,6 +44,19 @@ interface DraftContextValue {
 
 const DraftContext = createContext<DraftContextValue | null>(null)
 
+/**
+ * Clears the persisted transfer draft. Safe to call outside React (e.g. on
+ * sign-out from AuthProvider, which wraps this provider) so a different
+ * account signing in on the same tab can't inherit the previous draft.
+ */
+export function clearTransferDraft() {
+  try {
+    sessionStorage.removeItem(STORAGE_KEY)
+  } catch {
+    /* sessionStorage unavailable; nothing to clear */
+  }
+}
+
 /** Multi-step send flow state, persisted per tab so a refresh mid-flow is safe. */
 export function TransferDraftProvider({ children }: { children: ReactNode }) {
   const [draft, setDraft] = useState<TransferDraft>(INITIAL)
@@ -66,7 +79,7 @@ export function TransferDraftProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const reset = useCallback(() => {
-    sessionStorage.removeItem(STORAGE_KEY)
+    clearTransferDraft()
     setDraft(INITIAL)
   }, [])
 

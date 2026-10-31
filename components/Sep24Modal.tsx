@@ -33,6 +33,20 @@ const SEP24_TIMEOUT_MS = 30_000
 /** Consecutive timeouts before we tell the user the anchor is slow. */
 const SLOW_AFTER_TIMEOUTS = 2
 
+/**
+ * Sandbox for the anchor's interactive flow.
+ *
+ * Deliberately does NOT include `allow-same-origin`: combined with
+ * `allow-scripts` it lets the framed document script its own origin and strip
+ * its sandbox. Anchors are third-party partners, so we treat their content as
+ * untrusted. The opaque origin still permits scripts, forms, and popups;
+ * completion is reported via cross-origin `postMessage` and backend polling,
+ * neither of which needs same-origin access. If an anchor ever requires its own
+ * cookies/localStorage, it must be escalated explicitly as accepted risk.
+ */
+const IFRAME_SANDBOX =
+  'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox'
+
 export interface Sep24ModalProps {
   open: boolean
   kind: 'deposit' | 'withdraw'
@@ -203,7 +217,7 @@ export function Sep24Modal(props: Sep24ModalProps) {
                     src={url}
                     title={`${props.anchorName} secure portal`}
                     className="h-[560px] w-full"
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+                    sandbox={IFRAME_SANDBOX}
                     allow="camera; publickey-credentials-get"
                     referrerPolicy="no-referrer"
                   />
