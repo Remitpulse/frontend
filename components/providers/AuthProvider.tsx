@@ -12,6 +12,8 @@ import {
 import { setAuthToken } from '@/lib/api/client'
 import type { Session } from '@/lib/api/types'
 import { clearSessionKey } from '@/lib/stellar/sessionKeys'
+import { clearAsyncDataCache } from '@/hooks/useAsyncData'
+import { clearTransferDraft } from '@/components/providers/TransferDraftProvider'
 
 const STORAGE_KEY = 'rp-session'
 
@@ -51,6 +53,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     setAuthToken(null)
     localStorage.removeItem(STORAGE_KEY)
+    // Drop all cached client state so a different account signing in on the
+    // same tab can't see the previous account's transfers/recipients/balance.
+    clearAsyncDataCache()
+    clearTransferDraft()
     await clearSessionKey()
     setSession(null)
   }, [])

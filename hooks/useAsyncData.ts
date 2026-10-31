@@ -49,3 +49,11 @@ export function useAsyncData<T>(key: string | null, fetcher: () => Promise<T>) {
 export function invalidateAsyncData(key: string) {
   cache.delete(key)
 }
+
+/**
+ * Drops every cached entry. Must be called on sign-out so a different account
+ * signing in on the same tab can never see the previous account's data.
+ */
+export function clearAsyncDataCache() {
+  cache.clear()
+}
