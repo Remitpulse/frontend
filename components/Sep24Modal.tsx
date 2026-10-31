@@ -47,6 +47,18 @@ const SLOW_AFTER_TIMEOUTS = 2
 const IFRAME_SANDBOX =
   'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox'
 
+/**
+ * Window features for the SEP-24 popup fallback.
+ *
+ * `noopener` and `noreferrer` are both required: without them the third-party
+ * anchor retains a `window.opener` handle and can navigate the RemitPulse tab
+ * to a phishing lookalike while the user is distracted by the popup (reverse
+ * tabnabbing). Because `noopener` causes `window.open` to return `null`, we
+ * track the popup with a boolean and rely on the SEP-24 `postMessage`
+ * callback + backend polling for completion, never on a `Window` handle.
+ */
+const POPUP_FEATURES = 'popup,width=480,height=760,noopener,noreferrer'
+
 export interface Sep24ModalProps {
   open: boolean
   kind: 'deposit' | 'withdraw'
@@ -80,7 +92,9 @@ function isAllowedOrigin(url: string) {
 export function Sep24Modal(props: Sep24ModalProps) {
   const { open, url, sep24Id, onComplete, onClose } = props
   const [status, setStatus] = useState<string>('incomplete')
-  const [popup, setPopup] = useState<Window | null>(null)
+  // A boolean, not a `Window` handle: with `noopener` the popup is opaque to
+  // us by design, so we cannot focus or close it programmatically.
+  const [popupOpened, setPopupOpened] = useState(false)
   const [slow, setSlow] = useState(false)
   const closeRef = useRef<HTMLButtonElement>(null)
   const completed = useRef(false)
@@ -90,9 +104,8 @@ export function Sep24Modal(props: Sep24ModalProps) {
   const finish = useCallback(() => {
     if (completed.current) return
     completed.current = true
-    popup?.close()
     onComplete()
-  }, [onComplete, popup])
+  }, [onComplete])
 
   const handleStatus = useCallback(
     (s: string) => {
@@ -143,6 +156,7 @@ export function Sep24Modal(props: Sep24ModalProps) {
     if (!open) return
     completed.current = false
     setSlow(false)
+    setPopupOpened(false)
     closeRef.current?.focus()
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     document.addEventListener('keydown', onKey)
@@ -157,7 +171,9 @@ export function Sep24Modal(props: Sep24ModalProps) {
 
   const openPopup = () => {
     if (!url) return
-    setPopup(window.open(url, 'remitpulse-sep24', 'popup,width=480,height=760'))
+    // Return value is `null` with `noopener`; we just record that we tried.
+    window.open(url, 'remitpulse-sep24', POPUP_FEATURES)
+    setPopupOpened(true)
   }
 
   return (
@@ -209,8 +225,8 @@ export function Sep24Modal(props: Sep24ModalProps) {
                 Contact support.
               </div>
             ) : url ? (
-              popup ? (
-                <PopupWaiting onRefocus={() => popup.focus()} />
+              popupOpened ? (
+                <PopupWaiting />
               ) : (
                 <div className="overflow-hidden rounded-card border border-border bg-white">
                   <iframe
@@ -266,16 +282,22 @@ export function Sep24Modal(props: Sep24ModalProps) {
   )
 }
 
-function PopupWaiting({ onRefocus }: { onRefocus: () => void }) {
+/**
+ * Shown while the anchor completes in a separate popup window.
+ *
+ * We open the popup with `noopener,noreferrer` (reverse-tabnabbing defence),
+ * so the browser hands us back `null` and we cannot call `focus()` or
+ * `close()` on it. Completion still arrives automatically via the SEP-24
+ * `postMessage` callback or backend polling, so no handle is needed.
+ */
+function PopupWaiting() {
   return (
     <div className="rounded-card border border-border bg-white p-6 text-center">
       <p className="text-lg font-semibold text-ink">Connecting securely…</p>
       <p className="mt-2 text-body text-muted">
-        We opened your partner portal in a new window. Keep this window open.
+        We opened your partner portal in a new window. Keep this window open and finish
+        funding there — switching back here isn’t required for your transfer to update.
       </p>
-      <Button variant="secondary" className="mt-5" onClick={onRefocus}>
-        Show partner window
-      </Button>
     </div>
   )
 }
