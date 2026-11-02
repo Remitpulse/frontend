@@ -11,7 +11,7 @@ function generateNonce(): string {
   return btoa(binary)
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const nonce = generateNonce()
   const csp = buildCsp({ nonce, dev: process.env.NODE_ENV === 'development' })
 

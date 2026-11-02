@@ -24,7 +24,7 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 }
 
-// The CSP nonce (set on the response header by middleware.ts) does not need to be
+// The CSP nonce (set on the response header by proxy.ts) does not need to be
 // threaded through here: Next.js reads it from the Content-Security-Policy response
 // header and nonces its own injected scripts automatically. Nothing in this tree
 // renders an inline <script>/<style> that would need the nonce passed in manually.
