@@ -101,16 +101,16 @@ jobs:
             'next.config.ts',
             'next.config.js',
             'next.config.mjs',
-            'middleware.ts',
-            'middleware.js',
-            'src/middleware.ts',
-            'src/middleware.js',
+            'proxy.ts',
+            'proxy.js',
+            'src/proxy.ts',
+            'src/proxy.js',
           ];
 
           const files = candidates.filter((f) => fs.existsSync(path.resolve(f)));
 
           if (files.length === 0) {
-            console.error('No CSP configuration files found (next.config.* / middleware.*).');
+            console.error('No CSP configuration files found (next.config.* / proxy.*).');
             process.exit(1);
           }
 
