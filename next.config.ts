@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next'
 
 // WebAuthn requires a secure context; these headers keep the passkey surface tight.
-// The Content-Security-Policy is generated per-request in middleware.ts so that
+// The Content-Security-Policy is generated per-request in proxy.ts so that
 // script-src can use a nonce instead of 'unsafe-inline'. Keep the remaining
 // security headers here.
 
