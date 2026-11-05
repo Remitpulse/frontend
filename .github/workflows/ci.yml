@@ -91,57 +91,11 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
-      - name: Assert script-src does not allow 'unsafe-inline'
-        run: |
-          node - <<'EOF'
-          const fs = require('fs');
-          const path = require('path');
+      - name: Install dependencies
+        run: npm ci
 
-          const candidates = [
-            'next.config.ts',
-            'next.config.js',
-            'next.config.mjs',
-            'proxy.ts',
-            'proxy.js',
-            'src/proxy.ts',
-            'src/proxy.js',
-          ];
-
-          const files = candidates.filter((f) => fs.existsSync(path.resolve(f)));
-
-          if (files.length === 0) {
-            console.error('No CSP configuration files found (next.config.* / proxy.*).');
-            process.exit(1);
-          }
-
-          let failed = false;
-
-          for (const file of files) {
-            const content = fs.readFileSync(path.resolve(file), 'utf8');
-
-            // Find script-src directives, including those built up across
-            // template literals / concatenations. We scan the raw text for
-            // any `script-src` occurrence and inspect the surrounding window.
-            const scriptSrcRegex = /script-src/g;
-            let match;
-            while ((match = scriptSrcRegex.exec(content)) !== null) {
-              const window = content.slice(match.index, match.index + 400);
-              if (window.includes("'unsafe-inline'") || window.includes('"unsafe-inline"')) {
-                console.error(
-                  `::error file=${file}::script-src contains 'unsafe-inline' near offset ${match.index}`
-                );
-                failed = true;
-              }
-            }
-          }
-
-          if (failed) {
-            console.error("CSP regression: script-src must not include 'unsafe-inline'.");
-            process.exit(1);
-          }
-
-          console.log("CSP check passed: script-src does not include 'unsafe-inline'.");
-          EOF
+      - name: Verify generated CSP and nonce forwarding
+        run: npm exec vitest run test/csp.test.ts test/proxy.test.ts
 
   e2e:
     name: E2E (Playwright, demo mode)

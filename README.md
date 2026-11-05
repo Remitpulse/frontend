@@ -6,40 +6,29 @@
 <p align="center">
   <a href="https://github.com/Remitpulse/frontend/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Remitpulse/frontend/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Next.js 16" src="https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white">
-  <img alt="TypeScript 5.9" src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white">
+  <img alt="TypeScript 6" src="https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white">
   <img alt="Stellar Soroban" src="https://img.shields.io/badge/Stellar-Soroban-7D00FF?logo=stellar&logoColor=white">
   <img alt="WebAuthn" src="https://img.shields.io/badge/Auth-WebAuthn%20passkeys-10B981">
   <img alt="License" src="https://img.shields.io/badge/License-MIT-blue">
 </p>
 
-<!-- NOTE: This README was edited for issue #47. The only intended change is
-     the production checklist CSP line (next.config.ts -> lib/csp.ts + middleware.ts).
-     All other content is preserved verbatim. -->
+RemitPulse is a passkey-based remittance frontend with a local demo and client integration
+code for Stellar/Soroban smart accounts. It is **not a standalone remittance service**:
+live authentication, account deployment, quotes, fee sponsorship, settlement and fiat
+funding require an independently deployed backend, compatible contracts and anchor partners.
+Those services and their security guarantees are not verified by this repository's tests.
 
-RemitPulse is a full passkey-native wallet front end for sending stablecoins (USDC · EURC · ARST · BRLA) across
-borders on Stellar/Soroban. There's no browser extension, no seed phrase to back up, and no network fee for the
-sender — every ceremony is a biometric prompt, every signature is verified against a Soroban smart account, and
-every transfer is tracked live from "payment received" to "delivered."
+Built with **Next.js 16 (App Router), React 19 and Tailwind CSS 4**. `package.json`
+specifies Next.js `^16.4.2`; `package-lock.json` resolves the installed versions.
+The current toolchain declares TypeScript 6, ESLint 9, Vitest 5, Stellar SDK 17
+and SimpleWebAuthn browser 14. See [review findings](docs/review-readiness.md) for
+compatibility warnings and remaining integration work.
 
-Built with **Next.js 15 (App Router) + Tailwind CSS**, it implements the full WebAuthn ↔ Soroban signature bridge
-end to end: DER-to-compact-low-S conversion, `authorizeEntry` auth-entry signing, non-extractable Ed25519 session
-keys for quick-send, and a SEP-24 anchor flow for fiat funding — all documented below with the exact file that
-does each job.
-
-### Why it stands out
-
-- **No custodial key handling, anywhere.** Passkey private keys live in the authenticator's secure enclave; session
-  keys are WebCrypto `CryptoKey`s created `extractable: false`. Nothing sensitive ever touches a JS variable.
-- **The hard cryptography is solved, not stubbed.** WebAuthn gives you an ASN.1 DER ECDSA signature; Soroban's
-  `secp256r1_verify` wants a fixed 64-byte low-S `r ‖ s`. [`lib/stellar/webauthn.ts`](lib/stellar/webauthn.ts) does
-  that conversion correctly, with tests that check it against Node's own crypto implementation.
-- **Session keys that know their limits.** Quick-send is an on-chain-scoped signer (capped amount + TTL), not a
-  client-side convenience flag — so "remember me" can't be abused into unlimited spend.
-- **Real-time, not polling-and-hoping.** Transfer status streams over SSE with an automatic fallback, and funding
-  via SEP-24 is detected through `postMessage` with backend polling as the safety net.
-- **A demo mode that doesn't lie to you.** `NEXT_PUBLIC_DEMO_MODE=true` mocks the backend, but passkey ceremonies
-  and signature math are 100% real — so what you click through locally is the same cryptography that ships to
-  mainnet.
+WebAuthn ceremonies, DER-to-compact-low-S conversion and WebCrypto Ed25519 signing
+are implemented. Demo mode uses sample balances, rates, recipients, transfers and
+funding; its signatures do not prove settlement or server-side authentication.
+No browser-extension wallet connector is implemented: the wallet model is a passkey
+smart account supplied by the backend.
 
 ---
 
@@ -48,7 +37,7 @@ does each job.
 **Figma Design File: https://www.figma.com/design/HNvkClSYNDvQJLVB3bNaC6/RemitPule?node-id=0-1&p=f&t=BAh716aGwTH4bRvq-0**
 
 Design tokens come straight from the Figma "14 · Design system & interaction states" frame and live in
-[`tailwind.config.ts`](tailwind.config.ts):
+[`app/globals.css`](app/globals.css):
 
 | Token      | Value                                                                                                   | Tailwind                                                  |
 | ---------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
@@ -124,7 +113,7 @@ Design tokens come straight from the Figma "14 · Design system & interaction st
   Soroban auth payload before anything is sent.
 - **Ed25519 session keys** ([`lib/stellar/sessionKeys.ts`](lib/stellar/sessionKeys.ts), [`hooks/useSessionKey.ts`](hooks/useSessionKey.ts)).
   WebCrypto generates the key as _non-extractable_ and stores it in IndexedDB. Turning on quick send costs one passkey prompt,
-  which authorises the backend-prepared `add_signer`. After that, transfers ≤ `NEXT_PUBLIC_SESSION_KEY_MAX_AMOUNT` sign silently until the TTL ends.
+  which authorises the backend-prepared `add_signer`. After that, transfers ≤ `NEXT_PUBLIC_SESSION_KEY_MAX_AMOUNT` can sign silently until the local TTL ends. Contract enforcement and confirmed registration still require integration verification; disabling quick send deletes the local key only.
 - **Smart-account auth signing** ([`lib/stellar/smartAccount.ts`](lib/stellar/smartAccount.ts)):
   1. Simulate in recording mode.
   2. Sign each address-credential auth entry through `authorizeEntry` with a `{ signatureScVal }` callback.
@@ -137,12 +126,12 @@ Design tokens come straight from the Figma "14 · Design system & interaction st
 - **SEP-24 modal** ([`components/Sep24Modal.tsx`](components/Sep24Modal.tsx)):
   - Sandboxed iframe, gated by an origin allowlist.
   - Popup fallback for anchors that block framing.
-  - Completion is detected through the SEP-24 `postMessage` callback, with backend polling as a fallback.
+  - Backend polling detects completion. A `postMessage` listener exists, but sandboxed iframe origins and `noopener` popups limit callback delivery; verify with each anchor.
   - Also used on `/wallet` for standalone deposits and withdrawals.
-- **Live tracker.** An SSE stream (`/transfers/:id/events`) with an automatic polling fallback. Stages are
+- **Live tracker.** An SSE stream (`/transfers/:id/events`) with an automatic polling fallback. Cookie authentication for SSE must be supplied by the backend; the frontend API otherwise uses a bearer token. Stages are
   _Payment received → Converted → Settling on Stellar → Delivered_, plus a Stellar Expert link once the transaction is on-chain.
 - **Demo mode.** With `NEXT_PUBLIC_DEMO_MODE=true` the backend is mocked, but **passkey ceremonies and signature conversion
-  are real**, so you can click through every flow locally without contracts or a relay.
+  are real**. Demo authentication does not verify assertions, signatures are not submitted on-chain, and transfer stages are simulated.
 
 ## 🗂 Project structure
 
@@ -211,7 +200,7 @@ npm run dev:https          # next dev --experimental-https (self-signed cert)
 ```
 
 Set `NEXT_PUBLIC_WEBAUTHN_RP_ID` to that hostname and `NEXT_PUBLIC_APP_ORIGIN` to the full `https://` origin. In production
-the RP ID must equal the registrable domain (or a parent of it) of the page origin, or the browser rejects the ceremony with `SecurityError`.
+the RP ID must be the page hostname or a permitted domain suffix, and cannot be a public suffix, or the browser rejects the ceremony with `SecurityError`.
 
 ## 🔗 Contract integration
 
@@ -228,8 +217,7 @@ the RP ID must equal the registrable domain (or a parent of it) of the page orig
 ```
 
 The contract should check that `client_data_json.challenge == base64url(signature_payload)`, then call
-`secp256r1_verify(pubkey, sha256(authenticator_data || sha256(client_data_json)), signature)`. **If your compiled contract
-uses different type names or fields, `signatures.ts` is the only file to change.**
+`secp256r1_verify(pubkey, sha256(authenticator_data || sha256(client_data_json)), signature)`. **The deployed ABI, signer-management methods, authorization policy and relay transaction rebuilding must all be checked against the actual contracts.**
 
 At signup the passkey's public key is sent to the backend as a 65-byte uncompressed SEC1 point (`0x04‖X‖Y`, hex), ready
 to store as the account's signer.
@@ -260,7 +248,8 @@ npm run dev                     # http://localhost:3000
 ```
 
 ```bash
-npm test                        # vitest: signature conversion, encoding, CSP
+npm run lint
+npm test                        # unit and mocked hook tests; no chain submission
 npm run typecheck
 ```
 
@@ -274,19 +263,18 @@ npm start                                    # or deploy .next to any Node host 
 Production checklist:
 
 - [ ] Serve over HTTPS on the domain matching `NEXT_PUBLIC_WEBAUTHN_RP_ID`.
-- [ ] `NEXT_PUBLIC_DEMO_MODE=false`, and every contract ID and the backend URL set (`assertConfig()` lists any that are missing).
+- [ ] `NEXT_PUBLIC_DEMO_MODE=false`, and every contract ID and the backend URL set (`assertConfig()` checks a subset of required fields when explicitly called; it is not currently wired into startup).
 - [ ] `NEXT_PUBLIC_SEP24_ALLOWED_ORIGINS` contains only your anchors' origins.
-- [ ] Review the CSP built in [`lib/csp.ts`](lib/csp.ts) and applied in [`middleware.ts`](middleware.ts) after adding any third-party origins.
+- [ ] Review the CSP built in [`lib/csp.ts`](lib/csp.ts) and applied in [`proxy.ts`](proxy.ts) after adding any third-party origins.
 - [ ] Replace `/legal` with reviewed copy.
 
 ## 🔐 Security notes
 
-- Passkey private keys never leave the authenticator. Session-key private keys are WebCrypto `CryptoKey`s created with
-  `extractable: false`, so page scripts can't read them. The on-chain signer scope (cap and expiry) is what actually limits them.
+- Passkey private keys stay in the authenticator. Session keys are non-extractable WebCrypto keys in IndexedDB; same-origin scripts can still invoke signing. Contract-enforced limits need independent verification.
 - Every passkey assertion is checked client-side, before submission, to have signed exactly the Soroban auth payload.
 - The SEP-24 iframe loads only from allowlisted origins, and `postMessage` events are accepted only from the anchor origin.
-- Fees are paid by the relay through a fee bump. Users never hold XLM.
+- Sponsored fees are an expected backend integration behavior, not a guarantee established by this frontend.
 
 ## 📄 License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE). Third-party packages and fonts retain their own licenses; see [attribution review](docs/review-readiness.md#licensing-and-attribution).

@@ -128,3 +128,18 @@ describe('buildCsp integration sources (issue #47)', () => {
     vi.unstubAllEnvs()
   })
 })
+
+describe('RPC connectivity', () => {
+  it('permits the configured RPC origin only for connections', async () => {
+    vi.resetModules()
+    vi.stubEnv('NEXT_PUBLIC_STELLAR_RPC_URL', 'https://rpc.example.org/path')
+    try {
+      const { buildCsp: build } = await import('../lib/csp')
+      const policy = build({ nonce: 'rpc', dev: false })
+      expect(getDirective(policy, 'connect-src')).toContain('https://rpc.example.org')
+      expect(getDirective(policy, 'frame-src')).not.toContain('https://rpc.example.org')
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+})

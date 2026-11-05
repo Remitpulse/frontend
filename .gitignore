@@ -11,3 +11,5 @@ next-env.d.ts
 certificates
 .DS_Store
 .husky/_
+playwright-report/
+test-results/
