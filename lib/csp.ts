@@ -47,7 +47,12 @@ export function buildCsp({ nonce, dev }: { nonce: string; dev: boolean }): strin
 
   // The backend relay may also be used for fetch calls, and anchors are
   // reachable for fetch fallbacks. frame-src is restricted to anchors only.
-  const connectSrc = uniqueSources(["'self'", backendSource, ...anchorSources]).join(' ')
+  const connectSrc = uniqueSources([
+    "'self'",
+    backendSource,
+    toCspSource(config.rpcUrl),
+    ...anchorSources,
+  ]).join(' ')
   const frameSrc = uniqueSources(["'self'", ...anchorSources]).join(' ')
 
   return [

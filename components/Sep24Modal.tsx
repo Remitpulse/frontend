@@ -44,8 +44,7 @@ const SLOW_AFTER_TIMEOUTS = 2
  * neither of which needs same-origin access. If an anchor ever requires its own
  * cookies/localStorage, it must be escalated explicitly as accepted risk.
  */
-const IFRAME_SANDBOX =
-  'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox'
+const IFRAME_SANDBOX = 'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox'
 
 /**
  * Window features for the SEP-24 popup fallback.
@@ -99,7 +98,7 @@ export function Sep24Modal(props: Sep24ModalProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const completed = useRef(false)
 
-  const allowed = !url || isAllowedOrigin(url)
+  const allowed = url ? isAllowedOrigin(url) : config.demoMode
 
   const finish = useCallback(() => {
     if (completed.current) return
@@ -117,7 +116,7 @@ export function Sep24Modal(props: Sep24ModalProps) {
 
   // Anchor postMessage callback (SEP-24 `callback=postMessage`).
   useEffect(() => {
-    if (!open || !url) return
+    if (!open || !url || !allowed) return
     const anchorOrigin = new URL(url).origin
     const onMessage = (e: MessageEvent) => {
       if (e.origin !== anchorOrigin) return
@@ -126,11 +125,11 @@ export function Sep24Modal(props: Sep24ModalProps) {
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [open, url, handleStatus])
+  }, [open, url, allowed, handleStatus])
 
   // Backend polling fallback.
   useEffect(() => {
-    if (!open || !url) return
+    if (!open || !url || !allowed) return
     let t: ReturnType<typeof setTimeout>
     let timeouts = 0
     const tick = async () => {
@@ -150,7 +149,7 @@ export function Sep24Modal(props: Sep24ModalProps) {
     }
     t = setTimeout(tick, POLL_MS)
     return () => clearTimeout(t)
-  }, [open, url, sep24Id, handleStatus])
+  }, [open, url, allowed, sep24Id, handleStatus])
 
   useEffect(() => {
     if (!open) return
@@ -295,8 +294,8 @@ function PopupWaiting() {
     <div className="rounded-card border border-border bg-white p-6 text-center">
       <p className="text-lg font-semibold text-ink">Connecting securely…</p>
       <p className="mt-2 text-body text-muted">
-        We opened your partner portal in a new window. Keep this window open and finish
-        funding there — switching back here isn’t required for your transfer to update.
+        We opened your partner portal in a new window. Keep this window open and finish funding
+        there — switching back here isn’t required for your transfer to update.
       </p>
     </div>
   )

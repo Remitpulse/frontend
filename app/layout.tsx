@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { connection } from 'next/server'
 import { Inter } from 'next/font/google'
 import { config } from '@/lib/config'
 import './globals.css'
@@ -24,11 +25,9 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 }
 
-// The CSP nonce (set on the response header by proxy.ts) does not need to be
-// threaded through here: Next.js reads it from the Content-Security-Policy response
-// header and nonces its own injected scripts automatically. Nothing in this tree
-// renders an inline <script>/<style> that would need the nonce passed in manually.
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+// Per-request CSP nonces require dynamically rendered framework scripts.
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  await connection()
   return (
     <html lang="en" className={inter.variable}>
       <body>

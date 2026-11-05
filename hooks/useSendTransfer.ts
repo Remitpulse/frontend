@@ -113,7 +113,9 @@ export function useSendTransfer() {
       } catch (err) {
         if (isTimeoutError(err)) {
           setPhase('idle')
-          setError('The transfer request timed out. Your money has not moved — please try again.')
+          setError(
+            'The transfer request timed out. Its status is unknown. Check your activity before trying again.',
+          )
         } else {
           setPhase('error')
           setError(describePasskeyError(err))

@@ -282,7 +282,7 @@ describe('useSendTransfer', () => {
 
     expect(result.current.phase).toBe('idle')
     expect(result.current.error).toBe(
-      'The transfer request timed out. Your money has not moved — please try again.',
+      'The transfer request timed out. Its status is unknown. Check your activity before trying again.',
     )
   })
 
