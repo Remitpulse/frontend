@@ -136,7 +136,7 @@ export default function SendCalculatorPage() {
 
       <fieldset className="mt-5">
         <legend className="text-[15px] font-semibold text-ink">How should it arrive?</legend>
-        <div className="mt-3 grid grid-cols-2 gap-3">
+        <div role="radiogroup" aria-label="Delivery method" className="mt-3 grid grid-cols-2 gap-3">
           <PayoutOption
             selected={draft.payoutMethod === 'bank'}
             onSelect={() => update({ payoutMethod: 'bank' })}
@@ -200,7 +200,7 @@ function PayoutOption(props: {
         <CheckCircleIcon size={20} className="absolute right-3 top-3 text-royal" />
       )}
       <p className="mt-3 text-body font-semibold text-ink">{props.title}</p>
-      <p className="mt-0.5 text-caption text-muted">
+      <p className={cn('mt-0.5 text-caption', props.selected ? 'text-slate-600' : 'text-muted')}>
         {props.disabled ? 'Not available yet' : props.detail}
       </p>
     </button>

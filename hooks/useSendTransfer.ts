@@ -6,7 +6,7 @@ import { useAuth } from '@/components/providers/AuthProvider'
 import { api, isTimeoutError } from '@/lib/api/client'
 import type { CreateTransferResponse, FundingSource, Quote, Recipient } from '@/lib/api/types'
 import { config } from '@/lib/config'
-import { assetContractId, toBaseUnits } from '@/lib/stellar/assets'
+import { assetContractId, toBaseUnits, SEND_OPTIONS } from '@/lib/stellar/assets'
 import { AUTH_TTL_LEDGERS, buildTokenTransfer, type AuthSigner } from '@/lib/stellar/smartAccount'
 import { describePasskeyError, usePasskey } from './usePasskey'
 import { useSessionKey } from './useSessionKey'
@@ -79,6 +79,16 @@ export function useSendTransfer() {
       setError(null)
       setPhase('authorizing')
       try {
+        const expiresAt = Date.parse(quote.expiresAt)
+        if (!Number.isFinite(expiresAt) || expiresAt <= Date.now())
+          throw new Error('Your quote has expired. Request a new quote before sending.')
+        if (!/^\d+(?:\.\d{1,7})?$/.test(quote.sendAmount) || toBaseUnits(quote.sendAmount) <= 0n)
+          throw new Error('Invalid transfer amount')
+        if (
+          SEND_OPTIONS.find((option) => option.currency === quote.sendCurrency)?.asset !==
+          quote.sendAsset
+        )
+          throw new Error('Quote asset does not match the send currency')
         const { signer, usedSessionKey } = selectSigner(
           sessionKey.signerFor,
           passkey.signer,

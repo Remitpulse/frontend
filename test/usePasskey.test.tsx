@@ -35,7 +35,7 @@ vi.mock('@/components/providers/AuthProvider', () => ({
 }))
 
 vi.mock('@/lib/config', () => ({
-  config: { webauthn: { rpId: 'example.com', rpName: 'RemitPulse' } },
+  config: { webauthn: { rpId: 'example.com', userVerification: 'required', rpName: 'RemitPulse' } },
 }))
 
 vi.mock('@/lib/stellar/signatures', () => ({
@@ -156,6 +156,7 @@ describe('usePasskey', () => {
         optionsJSON: {
           ...options,
           rp: { ...options.rp, id: 'example.com' },
+          authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
           pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
         },
       })
@@ -238,7 +239,7 @@ describe('usePasskey', () => {
 
       expect(mockedLoginOptions).toHaveBeenCalledWith()
       expect(mockedStartAuthentication).toHaveBeenCalledWith({
-        optionsJSON: { ...options, rpId: 'example.com' },
+        optionsJSON: { ...options, rpId: 'example.com', userVerification: 'required' },
       })
       expect(mockedLoginVerify).toHaveBeenCalledWith({ response })
       expect(mockSignIn).toHaveBeenCalledWith(SESSION)
@@ -266,6 +267,20 @@ describe('usePasskey', () => {
   describe('signPayload', () => {
     const validPayload = new Uint8Array(32).fill(7)
 
+    it('rejects a signing credential other than the logged-in credential', async () => {
+      mockedStartAuthentication.mockResolvedValue({
+        ...makeAuthenticationResponse(),
+        id: 'another-credential',
+      } as never)
+      const { result } = renderHook(() => usePasskey())
+      await act(async () => {
+        await expect(result.current.signPayload(new Uint8Array(32))).rejects.toThrow(
+          'Unexpected signing credential',
+        )
+      })
+      expect(mockedWebAuthnSignatureScVal).not.toHaveBeenCalled()
+    })
+
     it('signs a valid 32-byte payload and returns the assertion with scVal', async () => {
       const response = makeAuthenticationResponse()
       mockedStartAuthentication.mockResolvedValue(response as never)
@@ -289,6 +304,7 @@ describe('usePasskey', () => {
       expect(mockedVerifyClientData).toHaveBeenCalledWith(response.response.clientDataJSON, {
         challenge: validPayload,
         type: 'webauthn.get',
+        origin: window.location.origin,
       })
       expect(returned?.signature).toEqual(new Uint8Array(64).fill(9))
       expect(returned?.scVal).toBe(MOCK_SCVAL)

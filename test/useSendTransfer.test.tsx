@@ -286,6 +286,23 @@ describe('useSendTransfer', () => {
     )
   })
 
+  it.each([
+    { expiresAt: 'invalid' },
+    { expiresAt: '2000-01-01T00:00:00Z' },
+    { sendAmount: '-1' },
+    { sendAmount: '1.00000001' },
+    { sendAsset: 'EURC' as const },
+  ])('rejects invalid quote intent before prompting or submitting %j', async (patch) => {
+    const { result } = renderHook(() => useSendTransfer())
+    await act(async () => {
+      await expect(
+        result.current.send(makeSendInput({ quote: makeQuote(patch) })),
+      ).rejects.toThrow()
+    })
+    expect(passkeySigner).not.toHaveBeenCalled()
+    expect(mockCreateTransfer).not.toHaveBeenCalled()
+  })
+
   it('send() sets a generic error and the error phase on other failures', async () => {
     mockCreateTransfer.mockRejectedValue(new Error('relay rejected the transfer'))
 

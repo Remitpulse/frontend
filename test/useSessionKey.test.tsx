@@ -8,6 +8,7 @@ import {
   isSessionKeyActive,
   issueSessionKey,
 } from '@/hooks/useSessionKey'
+import { sessionKeyStore } from '@/lib/stellar/sessionKeyStore'
 import type { SessionKeyRecord } from '@/lib/stellar/sessionKeys'
 
 // ---------------------------------------------------------------------------
@@ -97,6 +98,7 @@ function makeRecord(overrides: Partial<SessionKeyRecord> = {}): SessionKeyRecord
 }
 
 beforeEach(() => {
+  sessionKeyStore.set(null)
   vi.clearAllMocks()
   mockConfig.demoMode = true
   mockConfig.sessionKey = { maxAmount: 50, ttlMinutes: 30 }
@@ -106,7 +108,9 @@ beforeEach(() => {
 
   mockLoadSessionKey.mockResolvedValue(null)
   mockSupportsEd25519SessionKeys.mockReturnValue(true)
-  mockSaveSessionKey.mockResolvedValue(undefined)
+  mockSaveSessionKey.mockImplementation(async (record: SessionKeyRecord) => {
+    sessionKeyStore.set(record)
+  })
 })
 
 afterEach(() => {
@@ -383,5 +387,59 @@ describe('useSessionKey', () => {
     const { result } = renderHook(() => useSessionKey())
     await waitFor(() => expect(result.current.record).toBeNull())
     expect(result.current.supported).toBe(false)
+  })
+})
+
+describe('session-key isolation and disable', () => {
+  it('disabling clears every hook instance and invalidates a captured signer', async () => {
+    const record = makeRecord()
+    mockLoadSessionKey.mockResolvedValue(record)
+    mockSessionKeyCovers.mockReturnValue(true)
+    const first = renderHook(() => useSessionKey())
+    const second = renderHook(() => useSessionKey())
+    await waitFor(() => expect(first.result.current.record).toEqual(record))
+    await waitFor(() => expect(second.result.current.record).toEqual(record))
+    const signer = second.result.current.signerFor(10)!
+    await act(async () => {
+      await first.result.current.revoke()
+    })
+    expect(second.result.current.record).toBeNull()
+    await expect(signer(new Uint8Array(32))).rejects.toThrow('disabled or changed')
+  })
+  it('ignores an old account key load after switching accounts', async () => {
+    let resolve!: (record: SessionKeyRecord) => void
+    mockLoadSessionKey.mockReturnValueOnce(
+      new Promise((done) => {
+        resolve = done
+      }),
+    )
+    const { result, rerender } = renderHook(() => useSessionKey())
+    mockUseAuth.mockReturnValue({ session: { contractId: 'different-account' } })
+    rerender()
+    await act(async () => {
+      resolve(makeRecord())
+    })
+    expect(result.current.record).toBeNull()
+    expect(result.current.signerFor(10)).toBeNull()
+  })
+})
+
+describe('cancelled session-key issuance', () => {
+  it('does not persist a key after the session has been invalidated', async () => {
+    mockGenerateSessionKey.mockResolvedValue(makeRecord())
+    await expect(
+      issueSessionKey({
+        contractId: CONTRACT_ID,
+        passkey: { signPayload: mockSignPayload, signer: mockSigner },
+        demoMode: true,
+        maxAmount: 50,
+        ttlMinutes: 30,
+        issueSessionKey: mockIssueSessionKeyApi,
+        confirmSessionKey: mockConfirmSessionKey,
+        signPreparedXdr: mockSignPreparedXdr,
+        isCurrent: () => false,
+      }),
+    ).rejects.toThrow('Session changed')
+    expect(mockSaveSessionKey).not.toHaveBeenCalled()
   })
 })

@@ -1,5 +1,8 @@
 # Independent review readiness
 
+This is the historical PR #55 report. See [the follow-up](readiness-followup.md)
+for current lint, audit, browser coverage and build results.
+
 Reviewed against fetched `origin/main` commit
 `a330a060d4637328e7b74c003a2e36c9b04eca88` (2026-11-05).
 This is a source review and local verification, not a security audit or a

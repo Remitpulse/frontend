@@ -4,11 +4,11 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
-  useState,
+  useSyncExternalStore,
   type ReactNode,
 } from 'react'
+import { createClientStore } from '@/lib/clientStore'
 import type { FundingSource, Quote, Recipient } from '@/lib/api/types'
 import type { ReceiveCurrency, SendCurrency } from '@/lib/stellar/assets'
 
@@ -49,42 +49,44 @@ const DraftContext = createContext<DraftContextValue | null>(null)
  * sign-out from AuthProvider, which wraps this provider) so a different
  * account signing in on the same tab can't inherit the previous draft.
  */
+const draftStore = createClientStore<TransferDraft>(INITIAL, () => {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY)
+    return raw ? { ...INITIAL, ...(JSON.parse(raw) as Partial<TransferDraft>) } : INITIAL
+  } catch {
+    return INITIAL
+  }
+})
+
 export function clearTransferDraft() {
   try {
     sessionStorage.removeItem(STORAGE_KEY)
   } catch {
-    /* sessionStorage unavailable; nothing to clear */
+    /* storage unavailable */
   }
+  draftStore.set(INITIAL)
 }
 
 /** Multi-step send flow state, persisted per tab so a refresh mid-flow is safe. */
 export function TransferDraftProvider({ children }: { children: ReactNode }) {
-  const [draft, setDraft] = useState<TransferDraft>(INITIAL)
-
-  useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem(STORAGE_KEY)
-      if (raw) setDraft({ ...INITIAL, ...(JSON.parse(raw) as Partial<TransferDraft>) })
-    } catch {
-      sessionStorage.removeItem(STORAGE_KEY)
-    }
-  }, [])
-
+  const { value: draft, ready } = useSyncExternalStore(
+    draftStore.subscribe,
+    draftStore.getSnapshot,
+    draftStore.getServerSnapshot,
+  )
   const update = useCallback((patch: Partial<TransferDraft>) => {
-    setDraft((prev) => {
-      const next = { ...prev, ...patch }
+    const next = { ...draftStore.getSnapshot().value, ...patch }
+    try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      return next
-    })
+    } catch {
+      /* in-memory draft */
+    }
+    draftStore.set(next)
   }, [])
-
-  const reset = useCallback(() => {
-    clearTransferDraft()
-    setDraft(INITIAL)
-  }, [])
+  const reset = useCallback(() => clearTransferDraft(), [])
 
   const value = useMemo(() => ({ draft, update, reset }), [draft, update, reset])
-  return <DraftContext.Provider value={value}>{children}</DraftContext.Provider>
+  return <DraftContext.Provider value={value}>{ready ? children : null}</DraftContext.Provider>
 }
 
 export function useTransferDraft() {

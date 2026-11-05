@@ -1,9 +1,11 @@
+import { sessionKeyStore } from './sessionKeyStore'
+
 /**
  * Ed25519 session keys for low-value transfers.
  *
  * The private key is generated with WebCrypto as **non-extractable** and kept
  * in IndexedDB, so scripts can ask it to sign but can never read the key
- * material. The account contract enforces the key's scope (spend limit,
+ * material. The account contract must enforce the key's scope (spend limit,
  * expiry) on-chain; the client-side checks here only decide when to *try* it.
  */
 
@@ -19,7 +21,7 @@ export interface SessionKeyRecord {
   /** Max amount per transfer in send-asset units, as registered on-chain. */
   maxAmount: number
   expiresAt: number
-  /** Set once the backend confirms `add_signer` landed on-chain. */
+  /** Set after backend acceptance; this client does not independently verify finality. */
   registered: boolean
 }
 
@@ -43,9 +45,12 @@ async function tx<T>(
   const db = await openDb()
   try {
     return await new Promise<T>((resolve, reject) => {
-      const req = fn(db.transaction(STORE, mode).objectStore(STORE))
-      req.onsuccess = () => resolve(req.result)
-      req.onerror = () => reject(req.error)
+      const transaction = db.transaction(STORE, mode)
+      const req = fn(transaction.objectStore(STORE))
+      transaction.oncomplete = () => resolve(req.result)
+      transaction.onerror = () => reject(transaction.error ?? req.error)
+      transaction.onabort = () =>
+        reject(transaction.error ?? new Error('Session key storage aborted'))
     })
   } finally {
     db.close()
@@ -57,6 +62,14 @@ export async function generateSessionKey(params: {
   maxAmount: number
   ttlMinutes: number
 }): Promise<SessionKeyRecord> {
+  if (
+    !Number.isFinite(params.maxAmount) ||
+    params.maxAmount <= 0 ||
+    !Number.isFinite(params.ttlMinutes) ||
+    params.ttlMinutes <= 0
+  ) {
+    throw new Error('Session key amount and lifetime must be positive finite numbers.')
+  }
   const pair = (await crypto.subtle.generateKey({ name: 'Ed25519' }, false, [
     'sign',
     'verify',
@@ -74,7 +87,12 @@ export async function generateSessionKey(params: {
 }
 
 export async function saveSessionKey(record: SessionKeyRecord): Promise<void> {
+  const version = sessionKeyStore.getVersion()
   await tx('readwrite', (s) => s.put(record))
+  if (sessionKeyStore.getVersion() !== version)
+    throw new Error('Session changed while saving quick send key')
+  sessionKeyStore.set(record)
+  sessionKeyStore.notifyOtherTabs()
 }
 
 export async function loadSessionKey(contractId: string): Promise<SessionKeyRecord | null> {
@@ -89,6 +107,8 @@ export async function loadSessionKey(contractId: string): Promise<SessionKeyReco
 }
 
 export async function clearSessionKey(): Promise<void> {
+  sessionKeyStore.set(null)
+  sessionKeyStore.notifyOtherTabs()
   if (!supportsEd25519SessionKeys()) return
   await tx('readwrite', (s) => s.delete(RECORD_ID))
 }
@@ -127,6 +147,13 @@ export function sessionKeyCovers(
   amount: number,
 ): record is SessionKeyRecord {
   return (
-    !!record && record.registered && record.expiresAt > Date.now() && amount <= record.maxAmount
+    !!record &&
+    record.registered &&
+    record.expiresAt > Date.now() &&
+    Number.isFinite(amount) &&
+    amount > 0 &&
+    Number.isFinite(record.maxAmount) &&
+    record.maxAmount > 0 &&
+    amount <= record.maxAmount
   )
 }

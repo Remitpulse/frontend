@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import { hash } from '@stellar/stellar-sdk'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { api } from '@/lib/api/client'
@@ -15,6 +15,7 @@ import {
   supportsEd25519SessionKeys,
   type SessionKeyRecord,
 } from '@/lib/stellar/sessionKeys'
+import { sessionKeyStore } from '@/lib/stellar/sessionKeyStore'
 import { ed25519SignatureScVal } from '@/lib/stellar/signatures'
 import { AUTH_TTL_LEDGERS, signPreparedXdr, type AuthSigner } from '@/lib/stellar/smartAccount'
 import { bytesToHex } from '@/lib/stellar/webauthn'
@@ -43,6 +44,7 @@ export interface IssueSessionKeyDeps {
   issueSessionKey: typeof api.issueSessionKey
   confirmSessionKey: typeof api.confirmSessionKey
   signPreparedXdr: typeof signPreparedXdr
+  isCurrent?: () => boolean
 }
 
 /**
@@ -74,6 +76,8 @@ export async function issueSessionKey(deps: IssueSessionKeyDeps): Promise<Sessio
     })
     await deps.confirmSessionKey({ contractId: deps.contractId, signedXdr })
   }
+  if (deps.isCurrent && !deps.isCurrent())
+    throw new Error('Session changed while enabling quick send.')
   const registered = { ...rec, registered: true }
   await saveSessionKey(registered)
   return registered
@@ -85,8 +89,11 @@ export function sessionSignerFor(
   amount: number,
 ): AuthSigner | null {
   if (!sessionKeyCovers(record, amount)) return null
-  return async (payload) =>
-    ed25519SignatureScVal(record!.publicKey, await signWithSessionKey(record!, payload))
+  return async (payload) => {
+    if (!sessionKeyCovers(record, amount))
+      throw new Error('Session key no longer covers this transfer')
+    return ed25519SignatureScVal(record!.publicKey, await signWithSessionKey(record!, payload))
+  }
 }
 
 /** True when the record is registered and not yet expired. */
@@ -102,24 +109,35 @@ export function isSessionKeyActive(record: SessionKeyRecord | null): boolean {
 export function useSessionKey() {
   const { session } = useAuth()
   const passkey = usePasskey()
-  const [record, setRecord] = useState<SessionKeyRecord | null>(null)
+  const stored = useSyncExternalStore(
+    sessionKeyStore.subscribe,
+    sessionKeyStore.getSnapshot,
+    sessionKeyStore.getServerSnapshot,
+  )
+  const contractId = session?.contractId ?? null
+  const record = stored?.contractId === contractId ? stored : null
   const [issuing, setIssuing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [now, setNow] = useState<number | null>(null)
 
   useEffect(() => {
-    if (!session) {
-      setRecord(null)
-      return
+    if (!contractId) return
+    let cancelled = false
+    const version = sessionKeyStore.getVersion()
+    loadSessionKeyRecord(contractId).then((loaded) => {
+      if (!cancelled && sessionKeyStore.getVersion() === version) {
+        sessionKeyStore.set(loaded)
+        setNow(Date.now())
+      }
+    })
+    return () => {
+      cancelled = true
     }
-    loadSessionKeyRecord(session.contractId).then(setRecord)
-  }, [session])
+  }, [contractId])
 
   useEffect(() => {
     if (!record) return
-    const tick = () => setNow(Date.now())
-    tick()
-    const i = setInterval(tick, 30_000)
+    const i = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(i)
   }, [record])
 
@@ -127,6 +145,7 @@ export function useSessionKey() {
     if (!session) throw new Error('Log in first.')
     setIssuing(true)
     setError(null)
+    const version = sessionKeyStore.getVersion()
     try {
       const registered = await issueSessionKey({
         contractId: session.contractId,
@@ -137,8 +156,9 @@ export function useSessionKey() {
         issueSessionKey: api.issueSessionKey,
         confirmSessionKey: api.confirmSessionKey,
         signPreparedXdr,
+        isCurrent: () => sessionKeyStore.getVersion() === version,
       })
-      setRecord(registered)
+      setNow(Date.now())
       return registered
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not enable quick send.')
@@ -149,19 +169,38 @@ export function useSessionKey() {
   }, [session, passkey])
 
   const revoke = useCallback(async () => {
-    await clearSessionKey()
-    setRecord(null)
+    setError(null)
+    sessionKeyStore.set(null)
+    try {
+      await clearSessionKey()
+    } catch (err) {
+      setError(
+        'Could not delete the stored key. Quick send is disabled in this tab; retry removal before reloading.',
+      )
+      throw err
+    }
   }, [])
 
   /** Returns a session-key signer when it can cover `amount`, otherwise null. */
   const signerFor = useCallback(
-    (amount: number): AuthSigner | null => sessionSignerFor(record, amount),
-    [record],
+    (amount: number): AuthSigner | null => {
+      const current = sessionKeyStore.getSnapshot()
+      if (!current || current.contractId !== contractId) return null
+      const signer = sessionSignerFor(current, amount)
+      if (!signer) return null
+      return async (payload) => {
+        if (sessionKeyStore.getSnapshot() !== current)
+          throw new Error('Quick send was disabled or changed')
+        return signer(payload)
+      }
+    },
+    [contractId],
   )
 
-  /** Minutes remaining before the active session key expires, ticking down every 30s. */
-  const minutesLeft =
-    record && now ? Math.max(0, Math.ceil((record.expiresAt - now) / 60_000)) : null
+  /** The timer refreshes the displayed TTL; signing rechecks the actual expiry. */
+  const minutesLeft = record
+    ? Math.max(0, Math.ceil((record.expiresAt - (now ?? record.expiresAt)) / 60_000))
+    : null
 
   return {
     supported: typeof window !== 'undefined' && supportsEd25519SessionKeys(),

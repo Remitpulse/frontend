@@ -101,6 +101,11 @@ export function usePasskey() {
           optionsJSON: {
             ...options,
             rp: { ...options.rp, id: options.rp.id ?? config.webauthn.rpId },
+            authenticatorSelection: {
+              ...options.authenticatorSelection,
+              residentKey: 'required',
+              userVerification: 'required',
+            },
             // Soroban only verifies secp256r1, so ES256 is the only acceptable algorithm.
             pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
           },
@@ -122,7 +127,11 @@ export function usePasskey() {
           throw Object.assign(new Error(), { name: 'NotSupportedError' })
         const { options } = await api.loginOptions()
         const response = await startAuthentication({
-          optionsJSON: { ...options, rpId: options.rpId ?? config.webauthn.rpId },
+          optionsJSON: {
+            ...options,
+            rpId: options.rpId ?? config.webauthn.rpId,
+            userVerification: 'required',
+          },
         })
         setStatus('verifying')
         const s = await api.loginVerify({ response })
@@ -154,9 +163,11 @@ export function usePasskey() {
         })
         setStatus('verifying')
 
+        if (response.id !== session.credentialId) throw new Error('Unexpected signing credential')
         verifyClientData(response.response.clientDataJSON, {
           challenge: payload,
           type: 'webauthn.get',
+          origin: window.location.origin,
         })
 
         // DER SEQUENCE{r, s} → 64-byte r||s, with s folded into the low half of n.

@@ -4,11 +4,11 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
-  useState,
+  useSyncExternalStore,
   type ReactNode,
 } from 'react'
+import { createClientStore } from '@/lib/clientStore'
 import { setAuthToken } from '@/lib/api/client'
 import type { Session } from '@/lib/api/types'
 import { clearSessionKey } from '@/lib/stellar/sessionKeys'
@@ -26,39 +26,59 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null)
-  const [ready, setReady] = useState(false)
+function isSession(value: unknown): value is Session {
+  if (!value || typeof value !== 'object') return false
+  const session = value as Partial<Session>
+  return ['token', 'contractId', 'credentialId', 'displayName'].every(
+    (field) => typeof session[field as keyof Session] === 'string',
+  )
+}
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) {
-        const s = JSON.parse(raw) as Session
-        setAuthToken(s.token)
-        setSession(s)
-      }
-    } catch {
-      localStorage.removeItem(STORAGE_KEY)
+const sessionStore = createClientStore<Session | null>(null, () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    const value: unknown = raw ? JSON.parse(raw) : null
+    if (isSession(value)) {
+      setAuthToken(value.token)
+      return value
     }
-    setReady(true)
-  }, [])
+    localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // Storage can be unavailable; an in-memory sign-in is still possible.
+  }
+  return null
+})
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const { value: session, ready } = useSyncExternalStore(
+    sessionStore.subscribe,
+    sessionStore.getSnapshot,
+    sessionStore.getServerSnapshot,
+  )
 
   const signIn = useCallback((s: Session) => {
     setAuthToken(s.token)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
-    setSession(s)
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
+    } catch {
+      /* memory session */
+    }
+    sessionStore.set(s)
   }, [])
 
   const signOut = useCallback(async () => {
     setAuthToken(null)
-    localStorage.removeItem(STORAGE_KEY)
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+    } catch {
+      /* storage unavailable */
+    }
+    sessionStore.set(null)
     // Drop all cached client state so a different account signing in on the
     // same tab can't see the previous account's transfers/recipients/balance.
     clearAsyncDataCache()
     clearTransferDraft()
     await clearSessionKey()
-    setSession(null)
   }, [])
 
   const value = useMemo(

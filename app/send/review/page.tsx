@@ -139,7 +139,7 @@ export default function ReviewPage() {
         </div>
       </fieldset>
 
-      <div className="mt-4 flex gap-3 rounded-control bg-royal-soft p-4 text-[13px] text-muted">
+      <div className="mt-4 flex gap-3 rounded-control bg-royal-soft p-4 text-[13px] text-slate-600">
         {quick ? (
           <BoltIcon className="shrink-0 text-royal" size={20} />
         ) : (
