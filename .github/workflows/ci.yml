@@ -27,12 +27,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Dependency audit
+        run: npm audit --audit-level=moderate
+
       - name: Typecheck
         run: npm run typecheck
 
       # Lint includes eslint-plugin-jsx-a11y rules for lint-time a11y checks.
       - name: Lint
-        run: npm run lint
+        run: npm run lint -- --max-warnings=0
 
       - name: Format check
         run: npm run format:check
@@ -45,40 +48,6 @@ jobs:
 
       - name: Build
         run: npm run build
-
-  e2e-a11y:
-    name: E2E accessibility (Playwright + axe-core)
-    runs-on: ubuntu-latest
-    # Only run once an actual Playwright E2E suite (with @axe-core/playwright
-    # assertions on onboarding, send, review and dashboard flows) exists —
-    # the config and tooling are in place, but no spec files have landed yet.
-    if: ${{ hashFiles('e2e/**') != '' }}
-    env:
-      NEXT_PUBLIC_DEMO_MODE: 'true'
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright browsers
-        run: npm run test:e2e:install
-
-      - name: Run E2E accessibility tests
-        run: npm run test:e2e
-
-      - name: Upload Playwright report
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: playwright-report-a11y
-          path: playwright-report/
-          retention-days: 7
 
   csp-guard:
     name: CSP regression check
@@ -98,10 +67,8 @@ jobs:
         run: npm exec vitest run test/csp.test.ts test/proxy.test.ts
 
   e2e:
-    name: E2E (Playwright, demo mode)
+    name: E2E and accessibility (Chromium, demo backend)
     runs-on: ubuntu-latest
-    # Only run once an actual Playwright E2E suite exists (see e2e-a11y above).
-    if: ${{ hashFiles('e2e/**') != '' }}
     env:
       NEXT_PUBLIC_DEMO_MODE: 'true'
     steps:

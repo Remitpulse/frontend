@@ -27,11 +27,12 @@ export function useQuote(params: {
   const [quote, setQuote] = useState<Quote | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [secondsLeft, setSecondsLeft] = useState(0)
+  const [now, setNow] = useState(0)
+  const { sendAmount, sendCurrency, receiveCurrency } = params
   const requestId = useRef(0)
 
   const fetchQuote = useCallback(async () => {
-    if (!isQuotableAmount(params.sendAmount)) {
+    if (!isQuotableAmount(sendAmount)) {
       // Invalidate any in-flight request so its response is ignored.
       requestId.current++
       setQuote(null)
@@ -43,8 +44,11 @@ export function useQuote(params: {
     setLoading(true)
     setError(null)
     try {
-      const q = await api.getQuote(params)
-      if (id === requestId.current) setQuote(q)
+      const q = await api.getQuote({ sendAmount, sendCurrency, receiveCurrency })
+      if (id === requestId.current) {
+        setQuote(q)
+        setNow(Date.now())
+      }
     } catch (err) {
       if (id === requestId.current) {
         setError(
@@ -58,27 +62,41 @@ export function useQuote(params: {
     } finally {
       if (id === requestId.current) setLoading(false)
     }
-  }, [params.sendAmount, params.sendCurrency, params.receiveCurrency]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sendAmount, sendCurrency, receiveCurrency])
+
+  const invalidateRequest = useCallback(() => {
+    requestId.current++
+  }, [])
 
   useEffect(() => {
     const t = setTimeout(fetchQuote, QUOTE_DEBOUNCE_MS)
-    return () => clearTimeout(t)
-  }, [fetchQuote])
+    return () => {
+      clearTimeout(t)
+      invalidateRequest()
+    }
+  }, [fetchQuote, invalidateRequest])
 
   useEffect(() => {
-    if (!quote) return setSecondsLeft(0)
-    const tick = () => setSecondsLeft(secondsUntil(quote.expiresAt))
-    tick()
-    const i = setInterval(tick, 1000)
+    if (!quote) return
+    const i = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(i)
   }, [quote])
 
+  const visibleQuote =
+    quote &&
+    Number(quote.sendAmount) === Number(sendAmount) &&
+    quote.sendCurrency === sendCurrency &&
+    quote.receiveCurrency === receiveCurrency
+      ? quote
+      : null
+  const secondsLeft = visibleQuote ? secondsUntil(visibleQuote.expiresAt, now) : 0
+
   return {
-    quote,
+    quote: visibleQuote,
     loading,
     error,
     secondsLeft,
-    expired: !!quote && secondsLeft === 0,
+    expired: !!visibleQuote && secondsLeft === 0,
     refresh: fetchQuote,
   }
 }

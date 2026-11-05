@@ -12,6 +12,7 @@ import {
   type Transaction,
 } from '@stellar/stellar-sdk'
 import { config } from '@/lib/config'
+import { assertAuthorizationIntent, contractInvocation } from './intent'
 import { getRpc } from './network'
 
 export { buildInvocation as __buildInvocationForTest }
@@ -79,17 +80,22 @@ export async function signAndAssemble(params: {
   ttlLedgers: number
 }): Promise<string> {
   const { tx } = params
+  const expected = contractInvocation(tx)
+  if (
+    !Number.isInteger(params.ttlLedgers) ||
+    params.ttlLedgers <= 0 ||
+    params.ttlLedgers > AUTH_TTL_LEDGERS.deferred
+  ) {
+    throw new Error('Invalid authorization lifetime')
+  }
   const [recording, latest] = await Promise.all([simulate(tx), getRpc().getLatestLedger()])
   const validUntil = latest.sequence + params.ttlLedgers
 
   const entries = recording.result?.auth ?? []
+  assertAuthorizationIntent(entries, expected, params.accountId)
   const signed = []
   // Sequential: each entry may open its own passkey prompt.
   for (const entry of entries) {
-    if (entry.credentials.type === 'sorobanCredentialsSourceAccount') {
-      signed.push(entry)
-      continue
-    }
     signed.push(
       await authorizeEntry(
         entry,
@@ -136,6 +142,7 @@ export function buildTokenTransfer(params: {
   signer: AuthSigner
   ttlLedgers: number
 }) {
+  if (params.amount <= 0n) throw new Error('Transfer amount must be positive')
   const tx = buildInvocation(params.tokenContractId, 'transfer', [
     new Address(params.accountId).toScVal(),
     new Address(params.to).toScVal(),

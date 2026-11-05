@@ -152,16 +152,20 @@ function findCoseCoordinate(bytes: Uint8Array, label: number): Uint8Array | null
 /** Decodes clientDataJSON and checks it matches the expected challenge + type. */
 export function verifyClientData(
   clientDataJSONB64Url: string,
-  expected: { challenge: Uint8Array; type: 'webauthn.get' | 'webauthn.create' },
+  expected: { challenge: Uint8Array; type: 'webauthn.get' | 'webauthn.create'; origin?: string },
 ) {
   const json = JSON.parse(new TextDecoder().decode(base64UrlToBytes(clientDataJSONB64Url))) as {
     type: string
     challenge: string
     origin: string
+    crossOrigin?: boolean
   }
   if (json.type !== expected.type) throw new Error(`Unexpected clientData type: ${json.type}`)
   if (json.challenge !== bytesToBase64Url(expected.challenge)) {
     throw new Error('Passkey signed a different challenge than the transaction payload')
   }
+  if (expected.origin && json.origin !== expected.origin)
+    throw new Error('Unexpected passkey origin')
+  if (json.crossOrigin) throw new Error('Cross-origin passkey signing is not allowed')
   return json
 }

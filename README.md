@@ -22,7 +22,7 @@ Built with **Next.js 16 (App Router), React 19 and Tailwind CSS 4**. `package.js
 specifies Next.js `^16.4.2`; `package-lock.json` resolves the installed versions.
 The current toolchain declares TypeScript 6, ESLint 9, Vitest 5, Stellar SDK 17
 and SimpleWebAuthn browser 14. See [review findings](docs/review-readiness.md) for
-compatibility warnings and remaining integration work.
+compatibility warnings and remaining integration work. The [follow-up report](docs/readiness-followup.md) records current checks and security limits.
 
 WebAuthn ceremonies, DER-to-compact-low-S conversion and WebCrypto Ed25519 signing
 are implemented. Demo mode uses sample balances, rates, recipients, transfers and
@@ -36,20 +36,20 @@ smart account supplied by the backend.
 
 **Figma Design File: https://www.figma.com/design/HNvkClSYNDvQJLVB3bNaC6/RemitPule?node-id=0-1&p=f&t=BAh716aGwTH4bRvq-0**
 
-Design tokens come straight from the Figma "14 · Design system & interaction states" frame and live in
+The Figma link is a design reference. Current implementation tokens live in
 [`app/globals.css`](app/globals.css):
 
-| Token      | Value                                                                                                   | Tailwind                                                  |
-| ---------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| Navy       | `#0A192F`                                                                                               | `navy`                                                    |
-| Royal blue | `#2563EB`                                                                                               | `royal`                                                   |
-| Mint       | `#10B981`                                                                                               | `mint` (accent only; small success text uses `mint-dark`) |
-| Ink        | `#1E293B`                                                                                               | `ink`                                                     |
-| Muted      | `#64748B`                                                                                               | `muted`                                                   |
-| Border     | `#E2E8F0`                                                                                               | `border`                                                  |
-| Background | `#F8FAFC`                                                                                               | `surface`                                                 |
-| Type       | Inter · 32/24/20/16/14/12                                                                               | `font-sans`, `text-body`, `text-label`, `text-caption`    |
-| Layout     | 390 px mobile · 24 px margins · 12–18 px radii · 52 px actions · 480 px flow container · 232 px sidebar | `max-w-flow`, `h-action`, `w-sidebar`                     |
+| Token      | Value                                                                       | Tailwind                                               |
+| ---------- | --------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Navy       | `#0B1F3A`                                                                   | `navy`                                                 |
+| Royal blue | `#1D4ED8`                                                                   | `royal`                                                |
+| Mint       | `#34D399`                                                                   | `mint` (accent); `mint-dark` = `#047857` for text      |
+| Ink        | `#0F172A`                                                                   | `ink`                                                  |
+| Muted      | `#64748B`                                                                   | `muted`                                                |
+| Border     | `#E2E8F0`                                                                   | `border`                                               |
+| Background | `#F8FAFC`                                                                   | `surface`                                              |
+| Type       | System sans stack · body 16 / label 14 / caption 12                         | `font-sans`, `text-body`, `text-label`, `text-caption` |
+| Layout     | 12 / 8 px radii · 44 px action token · 64 rem flow maximum · 16 rem sidebar | `max-w-flow`, `h-action`, `w-sidebar`                  |
 
 ### Screen map (Figma frame → route)
 
@@ -119,7 +119,7 @@ Design tokens come straight from the Figma "14 · Design system & interaction st
   2. Sign each address-credential auth entry through `authorizeEntry` with a `{ signatureScVal }` callback.
   3. Re-simulate in enforcing mode, so `__check_auth` is in the footprint.
   4. `assembleTransaction`.
-  5. Hand the XDR to the relay for a sponsored fee bump.
+  5. Hand the XDR to the relay for a sponsored fee bump. The client now permits only one matching account authorization with no nested calls; live contract compatibility still needs verification.
 - **Calculator.** Debounced quotes, rate-lock countdown, the expired-rate state, a fee breakdown and the payout method (bank / cash pickup).
 - **Recipient form.** Corridor-specific validation: MX CLABE (18 digits), BR PIX, AR CBU/CVU (22), EU IBAN. Inline errors keep what the user entered.
 - **Review & authorize.** Passkey prompt, or the quick-send session key for small amounts. Funding comes from the partner (SEP-24) or the wallet balance.
@@ -251,7 +251,18 @@ npm run dev                     # http://localhost:3000
 npm run lint
 npm test                        # unit and mocked hook tests; no chain submission
 npm run typecheck
+npm run test:coverage
+npm run test:e2e:install         # Chromium and required system dependencies
+npm run test:e2e                 # production server, demo backend, virtual WebAuthn
 ```
+
+The six Chromium journeys cover protected routes, signup/login/logout and session
+restore, recipient validation and review reload, wallet transfer and simulated delivery,
+partner funding, quick-send signing and local disable across tabs, plus axe WCAG A/AA
+checks on onboarding, dashboard, calculator and review. The virtual authenticator performs
+real browser ceremonies; rates, balances, registration verification, funding and settlement
+are mocked by demo mode. External browser requests are blocked. These tests do not verify
+live contracts, relays, hardware authenticators, or anchor settlement.
 
 ## 🚀 Production build
 
@@ -271,8 +282,8 @@ Production checklist:
 ## 🔐 Security notes
 
 - Passkey private keys stay in the authenticator. Session keys are non-extractable WebCrypto keys in IndexedDB; same-origin scripts can still invoke signing. Contract-enforced limits need independent verification.
-- Every passkey assertion is checked client-side, before submission, to have signed exactly the Soroban auth payload.
-- The SEP-24 iframe loads only from allowlisted origins, and `postMessage` events are accepted only from the anchor origin.
+- Signing assertions check the credential ID, challenge, ceremony type, page origin and cross-origin flag before submission. Registration and login require user verification. The backend/contract must still verify signatures, RP-ID hash, flags, replay resistance and credential binding.
+- The SEP-24 iframe loads only from allowlisted origins, and its message listener checks anchor origin. Transaction binding and authoritative completion still require backend/anchor review.
 - Sponsored fees are an expected backend integration behavior, not a guarantee established by this frontend.
 
 ## 📄 License

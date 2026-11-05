@@ -72,7 +72,7 @@ export default function SettingsPage() {
           )}
           <div className="mt-4">
             {sessionKey.active ? (
-              <Button variant="secondary" onClick={sessionKey.revoke}>
+              <Button variant="secondary" onClick={() => sessionKey.revoke().catch(() => {})}>
                 Turn off on this device
               </Button>
             ) : (
@@ -86,6 +86,10 @@ export default function SettingsPage() {
               </Button>
             )}
           </div>
+          <p className="mt-3 text-caption text-muted">
+            Turning this off deletes the browser key. On-chain signer revocation is not implemented;
+            the registered signer may remain valid until its contract expiry.
+          </p>
           {sessionKey.error && (
             <p className="mt-2 text-caption text-danger" role="alert">
               {sessionKey.error}

@@ -89,6 +89,10 @@ function isAllowedOrigin(url: string) {
  * anchors implement the callback.
  */
 export function Sep24Modal(props: Sep24ModalProps) {
+  return props.open ? <OpenSep24Modal key={props.sep24Id} {...props} /> : null
+}
+
+function OpenSep24Modal(props: Sep24ModalProps) {
   const { open, url, sep24Id, onComplete, onClose } = props
   const [status, setStatus] = useState<string>('incomplete')
   // A boolean, not a `Window` handle: with `noopener` the popup is opaque to
@@ -131,31 +135,34 @@ export function Sep24Modal(props: Sep24ModalProps) {
   useEffect(() => {
     if (!open || !url || !allowed) return
     let t: ReturnType<typeof setTimeout>
+    let cancelled = false
     let timeouts = 0
     const tick = async () => {
       try {
         const s = await api.getSep24Status(sep24Id, { timeoutMs: SEP24_TIMEOUT_MS })
+        if (cancelled) return
         timeouts = 0
         setSlow(false)
         handleStatus(s.status)
       } catch (err) {
+        if (cancelled) return
         if (err instanceof ApiError && err.code === 'timeout') {
           timeouts += 1
           if (timeouts >= SLOW_AFTER_TIMEOUTS) setSlow(true)
         }
         /* transient; keep polling */
       }
-      if (!completed.current) t = setTimeout(tick, POLL_MS)
+      if (!cancelled && !completed.current) t = setTimeout(tick, POLL_MS)
     }
     t = setTimeout(tick, POLL_MS)
-    return () => clearTimeout(t)
+    return () => {
+      cancelled = true
+      clearTimeout(t)
+    }
   }, [open, url, allowed, sep24Id, handleStatus])
 
   useEffect(() => {
     if (!open) return
-    completed.current = false
-    setSlow(false)
-    setPopupOpened(false)
     closeRef.current?.focus()
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     document.addEventListener('keydown', onKey)
