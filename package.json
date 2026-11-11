@@ -57,7 +57,7 @@
     "prettier": "^3.9.10",
     "tailwindcss": "^4.3.4",
     "typescript": "^6.0.3",
-    "vitest": "^5.0.5"
+    "vitest": "^5.1.0"
   },
   "overrides": {
     "@typescript-eslint/typescript-estree@8.72.0": {
