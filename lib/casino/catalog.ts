@@ -1,3 +1,5 @@
+import type { DiceProof } from './dice-proof'
+
 export const games = [
   { id: 'dice', title: 'Dice', subtitle: 'Roll under your target', color: '#a483ff', mark: '⚄' },
   {
@@ -60,6 +62,7 @@ export type Entry = {
   amount: string
   created: string
   detail: string
+  proof?: DiceProof
 }
 export type Round = {
   stake: string

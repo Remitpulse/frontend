@@ -25,6 +25,7 @@ import { xlm } from '@/lib/casino/money'
 import { Passkeys } from './Passkeys'
 import { Play } from './Play'
 import { Sportsbook, type SportsMarket } from './Sportsbook'
+import { DiceReceipt } from './DiceReceipt'
 import { Vault } from './Vault'
 
 export type Result = {
@@ -434,6 +435,7 @@ export function Arcade() {
                           entry.detail
                         )}
                       </small>
+                      {entry.proof && <DiceReceipt proof={entry.proof} />}
                     </span>
                     <span>
                       <strong>{xlm(entry.amount)} XLM</strong>
