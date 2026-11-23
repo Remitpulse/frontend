@@ -313,6 +313,15 @@ export function Sportsbook({
                       <div>
                         <span>{ticket.state === 'Void' ? 'Refund' : 'Return'}</span>
                         <strong>{xlm(ticket.payout)} XLM</strong>
+                        <a
+                          download={`sports-ticket-${ticket.id}.json`}
+                          href={
+                            'data:application/json;charset=utf-8,' +
+                            encodeURIComponent(JSON.stringify(ticket, null, 2))
+                          }
+                        >
+                          Download settled ticket
+                        </a>
                       </div>
                     )}
                   </li>
