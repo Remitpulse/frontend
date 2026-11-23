@@ -23,4 +23,4 @@ The violet orbital arcade gives the lobby a recognizable hero and lets the game 
 
 ## Homepage and interactions
 
-Navigation leads to the lobby, activity, wallet and play controls. The hero action brings focus to the lobby. Search filters the originals immediately. Slots and Live Games have honest unavailable states. The five game cards open dedicated game interfaces and the wallet panel reports approval and settlement stages. Activity shows the two balances, passkey controls and the ledger.
+Navigation leads to the lobby, activity, wallet and play controls. The hero action brings focus to the lobby. Search works within arcade, table, draw and favorites filters. A featured rail highlights roulette and Keno, and the ledger supplies a recently played shelf. All nine game cards open dedicated game interfaces and the wallet panel reports approval and settlement stages. Activity shows the two balances, passkey controls and the ledger.

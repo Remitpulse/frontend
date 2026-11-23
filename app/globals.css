@@ -1015,3 +1015,271 @@ dialog::backdrop {
     white-space: normal;
   }
 }
+
+.lobby-masthead {
+  display: grid;
+  grid-template-columns: minmax(0, 2.75fr) minmax(230px, 1fr);
+  gap: 15px;
+}
+.lobby-masthead .hero h1 {
+  font-size: clamp(2.5rem, 4.5vw, 4.8rem);
+}
+.lobby-feature {
+  display: grid;
+  grid-template-rows: auto 1fr 1fr;
+  gap: 9px;
+  min-width: 0;
+  background: #14111f;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 13px;
+}
+.lobby-feature .eyebrow {
+  margin: 3px 3px 4px;
+}
+.feature-card {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  min-height: 108px;
+  padding: 13px;
+  border-radius: 11px;
+  text-align: left;
+  overflow: hidden;
+  border: 1px solid #ffffff20;
+  background:
+    linear-gradient(0deg, #100b20f5 5%, #100b2066 70%),
+    var(--cover) center 46% / cover,
+    var(--cover-color);
+}
+.feature-card:hover {
+  border-color: var(--violet);
+}
+.feature-card span {
+  display: grid;
+  gap: 3px;
+}
+.feature-card strong {
+  font-size: 1.05rem;
+  line-height: 1.1;
+}
+.feature-card small {
+  color: #ddd1e9;
+  font-size: 0.76rem;
+}
+.feature-card svg {
+  flex-shrink: 0;
+  color: var(--violet);
+}
+.cover-roulette {
+  --cover: url('/casino/roulette.webp');
+  --cover-color: #551b29;
+}
+.cover-keno {
+  --cover: url('/casino/keno.webp');
+  --cover-color: #153954;
+}
+.cover-wheel {
+  --cover: url('/casino/wheel.webp');
+  --cover-color: #6a421c;
+}
+.cover-baccarat {
+  --cover: url('/casino/baccarat.webp');
+  --cover-color: #482141;
+}
+.game-tile {
+  position: relative;
+  min-width: 0;
+}
+.game-tile .game-card {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.favorite-control {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: #f5eaff;
+  background: #140f21ed;
+  border: 1px solid #ffffff35;
+  border-radius: 9px;
+}
+.favorite-control:hover {
+  border-color: var(--violet);
+}
+.favorite-control[aria-pressed='true'] {
+  color: #ffcc75;
+}
+.favorite-control[aria-pressed='true'] svg {
+  fill: currentColor;
+}
+.recent-games {
+  margin: 20px 0 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #14111f;
+}
+.recent-games h2 {
+  font-size: 0.9rem;
+  font-weight: 720;
+  margin-bottom: 8px;
+}
+.recent-games > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.recent-games button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding-right: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  color: #eadfff;
+  font-size: 0.83rem;
+}
+.recent-games button:hover {
+  border-color: var(--violet);
+}
+.recent-games i {
+  width: 38px;
+  height: 38px;
+  background:
+    var(--cover) center / cover,
+    var(--cover-color);
+}
+.keno-board {
+  width: min(100%, 330px);
+}
+.keno-board p {
+  margin: 0 0 7px;
+  color: var(--muted);
+  font-size: 0.83rem;
+  text-align: center;
+}
+.keno-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 4px;
+}
+.keno-grid button {
+  min-height: 35px;
+  border: 1px solid #3e526b;
+  border-radius: 6px;
+  background: #191d34;
+  color: #e0f4ff;
+  font-size: 0.76rem;
+}
+.keno-grid button[aria-pressed='true'] {
+  background: #23799e;
+  color: white;
+  border-color: #b3ecff;
+}
+.keno-grid button[data-drawn='true'] {
+  opacity: 1;
+  outline: 2px solid #f4d586;
+  outline-offset: -2px;
+}
+.keno-grid button[data-drawn='true'][aria-pressed='true'] {
+  background: #f4d586;
+  color: #281d07;
+}
+.spin-display {
+  width: min(150px, 48vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid var(--game-color);
+  display: grid;
+  place-items: center;
+  background:
+    var(--cover) center / cover,
+    var(--cover-color);
+  box-shadow: 0 0 30px color-mix(in srgb, var(--game-color) 25%, transparent);
+}
+.spin-display strong {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 8px;
+  border-radius: 24px;
+  background: #100d18f5;
+  border: 1px solid var(--game-color);
+  color: var(--text);
+  font-size: 1.05rem;
+}
+.baccarat-hands {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  padding: 0 9px;
+}
+.baccarat-hands strong {
+  font-size: 0.85rem;
+  color: #fbd8ef;
+}
+.baccarat-hands > div > div {
+  display: flex;
+  gap: 6px;
+  margin-top: 5px;
+}
+.baccarat-hands span {
+  display: grid;
+  place-items: center;
+  min-width: 38px;
+  height: 51px;
+  padding: 3px;
+  border-radius: 6px;
+  background: #f6edf8;
+  color: #241530;
+  font-weight: 760;
+}
+.baccarat-hands span[data-red='true'] {
+  color: #a50735;
+}
+@media (max-width: 970px) {
+  .lobby-masthead {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .lobby-feature {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto auto;
+    border-radius: 14px;
+  }
+  .lobby-feature .eyebrow {
+    grid-column: 1/-1;
+  }
+}
+@media (max-width: 450px) {
+  .lobby-feature {
+    padding: 9px;
+  }
+  .feature-card {
+    padding: 8px;
+    min-height: 92px;
+  }
+  .feature-card svg {
+    display: none;
+  }
+  .feature-card strong {
+    font-size: 0.91rem;
+  }
+  .favorite-control {
+    width: 36px;
+    height: 36px;
+  }
+  .keno-grid {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+}

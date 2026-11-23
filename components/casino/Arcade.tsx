@@ -11,13 +11,15 @@ import {
   History,
   House,
   Layers3,
+  Star,
+  Play as PlayIcon,
   Orbit,
   Search,
   ShieldCheck,
   Wallet,
   X,
 } from 'lucide-react'
-import { games, type CasinoState, type Game } from '@/lib/casino/catalog'
+import { gameGroups, games, type CasinoState, type Game } from '@/lib/casino/catalog'
 import { xlm } from '@/lib/casino/money'
 import { Passkeys } from './Passkeys'
 import { Play } from './Play'
@@ -33,6 +35,14 @@ export type Result = {
   hash?: string
   xdr?: string
   options?: unknown
+  board?: number[]
+  hand?: {
+    player: number[]
+    banker: number[]
+    playerTotal: number
+    bankerTotal: number
+    winner: string
+  }
 }
 
 export async function casino(input?: Record<string, unknown>): Promise<Result> {
@@ -52,13 +62,14 @@ export async function casino(input?: Record<string, unknown>): Promise<Result> {
 }
 
 type View = 'lobby' | 'activity'
-type Category = 'Originals' | 'Slots' | 'Live Games'
-const categories: Category[] = ['Originals', 'Slots', 'Live Games']
+type Category = 'All games' | keyof typeof gameGroups | 'Favorites'
+const categories: Category[] = ['All games', 'Arcade', 'Tables', 'Draws', 'Favorites']
 
 export function Arcade() {
   const [state, setState] = useState<CasinoState>()
   const [view, setView] = useState<View>('lobby')
-  const [category, setCategory] = useState<Category>('Originals')
+  const [category, setCategory] = useState<Category>('All games')
+  const [favorites, setFavorites] = useState<string[]>([])
   const [query, setQuery] = useState('')
   const [game, setGame] = useState<Game>()
   const [panel, setPanel] = useState<'wallet' | 'help'>()
@@ -71,7 +82,16 @@ export function Arcade() {
   useEffect(() => {
     request.current ??= casino()
     request.current.then(
-      (result) => setState(result.state),
+      (result) => {
+        setState(result.state)
+        try {
+          const saved: unknown = JSON.parse(localStorage.getItem('arcade-favorites') || '[]')
+          if (Array.isArray(saved))
+            setFavorites(saved.filter((id): id is string => typeof id === 'string'))
+        } catch {
+          /* preferences are optional */
+        }
+      },
       (error) => setIssue(error.message),
     )
   }, [])
@@ -111,9 +131,31 @@ export function Arcade() {
     heading.current?.focus({ preventScroll: true })
   }
 
-  const filtered = games.filter((item) =>
-    (item.title + ' ' + item.subtitle).toLowerCase().includes(query.trim().toLowerCase()),
+  function toggleFavorite(id: string) {
+    const next = favorites.includes(id)
+      ? favorites.filter((value) => value !== id)
+      : [...favorites, id]
+    setFavorites(next)
+    try {
+      localStorage.setItem('arcade-favorites', JSON.stringify(next))
+    } catch {
+      /* storage can be disabled */
+    }
+  }
+
+  const recent = Array.from(
+    new Set(state?.entries.filter((entry) => entry.kind === 'Wager').map((entry) => entry.game)),
   )
+    .flatMap((title) => games.find((item) => item.title === title) ?? [])
+    .slice(0, 4)
+  const filtered = games.filter((item) => {
+    const group: readonly string[] =
+      category === 'All games' ? [] : category === 'Favorites' ? favorites : gameGroups[category]
+    return (
+      (category === 'All games' || group.includes(item.id)) &&
+      (item.title + ' ' + item.subtitle).toLowerCase().includes(query.trim().toLowerCase())
+    )
+  })
   return (
     <MotionConfig reducedMotion="user">
       <a className="skip-link" href="#main">
@@ -195,34 +237,73 @@ export function Arcade() {
         )}
         {view === 'lobby' ? (
           <>
-            <section className="hero">
-              <motion.div
-                className="hero-copy"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.45 }}
-              >
+            <div className="lobby-masthead">
+              <section className="hero">
+                <motion.div
+                  className="hero-copy"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.45 }}
+                >
+                  <p className="eyebrow">
+                    <Orbit size={16} /> THE STELLAR ARCADE
+                  </p>
+                  <h1>
+                    Play in a<br />
+                    <em>different orbit.</em>
+                  </h1>
+                  <p className="hero-description">
+                    Every wager in XLM.
+                    <br className="desktop-break" /> Explore the arcade with a free demo balance.
+                  </p>
+                  <button className="button primary hero-button" onClick={discover}>
+                    <Gamepad2 size={18} /> Explore games
+                  </button>
+                </motion.div>
+              </section>
+              <aside className="lobby-feature" aria-label="Featured games">
                 <p className="eyebrow">
-                  <Orbit size={16} /> THE STELLAR ARCADE
+                  <Star size={15} /> Featured games
                 </p>
-                <h1>
-                  Play in a<br />
-                  <em>different orbit.</em>
-                </h1>
-                <p className="hero-description">
-                  Five original games. Every wager in XLM.
-                  <br className="desktop-break" /> Explore the arcade with a free demo balance.
-                </p>
-                <button className="button primary hero-button" onClick={discover}>
-                  <Gamepad2 size={18} /> Explore games
-                </button>
-              </motion.div>
-            </section>
+                {([games[5], games[6]] as const).map((item) => (
+                  <button
+                    key={item.id}
+                    className={'feature-card cover-' + item.id}
+                    onClick={() => setGame(item)}
+                  >
+                    <span>
+                      <strong>{item.title}</strong>
+                      <small>{item.subtitle}</small>
+                    </span>
+                    <PlayIcon size={20} />
+                  </button>
+                ))}
+              </aside>
+            </div>
+            {recent.length > 0 && (
+              <section className="recent-games" aria-labelledby="recent-heading">
+                <h2 id="recent-heading">Recently played</h2>
+                <div>
+                  {recent.map((item) => (
+                    <button
+                      key={item.id}
+                      className={'cover-' + item.id}
+                      onClick={() => setGame(item)}
+                    >
+                      <i aria-hidden="true" />
+                      {item.title}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
             <section className="lobby" ref={heading} tabIndex={-1} aria-labelledby="lobby-heading">
               <div className="section-title">
                 <div>
                   <h2 id="lobby-heading">Game lobby</h2>
-                  <p>Choose your next game.</p>
+                  <p role="status">
+                    {filtered.length} {filtered.length === 1 ? 'game' : 'games'} · Simulated XLM
+                  </p>
                 </div>
                 <label className="search">
                   <Search size={17} />
@@ -237,7 +318,7 @@ export function Arcade() {
               </div>
               <div className="categories" aria-label="Game categories">
                 {categories.map((option, index) => {
-                  const Icon = [Dice5, Layers3, Orbit][index]
+                  const Icon = [Gamepad2, Dice5, Layers3, Orbit, Star][index]
                   return (
                     <button
                       key={option}
@@ -250,29 +331,35 @@ export function Arcade() {
                   )
                 })}
               </div>
-              {category === 'Originals' && filtered.length ? (
+              {filtered.length ? (
                 <div className="games">
                   {filtered.map((item) => (
-                    <button
-                      className={'game-card cover-' + item.id}
-                      key={item.id}
-                      onClick={() => setGame(item)}
-                    >
-                      <span className="game-art" aria-hidden="true">
-                        <span>{item.mark}</span>
-                      </span>
-                      <span className="game-info">
-                        <strong>{item.title}</strong>
-                        <span>{item.subtitle}</span>
-                      </span>
-                    </button>
+                    <article className={'game-tile cover-' + item.id} key={item.id}>
+                      <button className="game-card" onClick={() => setGame(item)}>
+                        <span className="game-art" aria-hidden="true">
+                          <span>{item.mark}</span>
+                        </span>
+                        <span className="game-info">
+                          <strong>{item.title}</strong>
+                          <span>{item.subtitle}</span>
+                        </span>
+                      </button>
+                      <button
+                        className="favorite-control"
+                        aria-label={'Favorite ' + item.title}
+                        aria-pressed={favorites.includes(item.id)}
+                        onClick={() => toggleFavorite(item.id)}
+                      >
+                        <Star size={17} />
+                      </button>
+                    </article>
                   ))}
                 </div>
               ) : (
                 <div className="empty">
-                  {category === 'Originals'
-                    ? 'No originals match your search.'
-                    : category + ' are unavailable in the demo.'}
+                  {category === 'Favorites' && !favorites.length
+                    ? 'Star a game to save it here.'
+                    : 'No games match your search.'}
                 </div>
               )}
             </section>

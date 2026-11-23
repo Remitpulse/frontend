@@ -4,7 +4,8 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'RemitPulse · Stellar Arcade',
-  description: 'Five Stellar originals. Wager simulated XLM in the RemitPulse arcade.',
+  description:
+    'Nine Stellar arcade, table and draw games. Wager simulated XLM in the RemitPulse arcade.',
 }
 export const viewport: Viewport = { themeColor: '#0b0a13', viewportFit: 'cover' }
 

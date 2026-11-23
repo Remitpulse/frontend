@@ -22,6 +22,34 @@ export const games = [
     mark: '⌁',
   },
   { id: 'coin', title: 'Coin Flip', subtitle: 'Call heads or tails', color: '#f79ad5', mark: '◈' },
+  {
+    id: 'roulette',
+    title: 'European Roulette',
+    subtitle: 'Call red, black or zero',
+    color: '#ff877e',
+    mark: '◎',
+  },
+  {
+    id: 'keno',
+    title: 'Keno',
+    subtitle: 'Pick five numbers from forty',
+    color: '#75d7ff',
+    mark: '✦',
+  },
+  {
+    id: 'wheel',
+    title: 'Wheel',
+    subtitle: 'Spin a twelve-segment wheel',
+    color: '#ffce80',
+    mark: '◉',
+  },
+  {
+    id: 'baccarat',
+    title: 'Baccarat',
+    subtitle: 'Back the player, banker or tie',
+    color: '#ffaacc',
+    mark: '♠',
+  },
 ] as const
 
 export type Game = (typeof games)[number]
@@ -45,3 +73,9 @@ export type CasinoState = {
   deposit: { hash: string; amount: string } | null
   withdrawal: { hash: string; amount: string } | null
 }
+
+export const gameGroups = {
+  Arcade: ['dice', 'mines', 'plinko', 'limbo', 'coin'],
+  Tables: ['roulette', 'baccarat'],
+  Draws: ['keno', 'wheel'],
+} satisfies Record<string, Game['id'][]>

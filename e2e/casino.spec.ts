@@ -58,3 +58,25 @@ test('can recover the same demo ledger using an origin-bound passkey', async ({
   await expect(page.getByText('Signed in with a passkey.')).toBeVisible()
   await expect(page.locator('.history li').filter({ hasText: 'Plinko' })).toHaveCount(2)
 })
+
+test('favorites and new game filters lead to a server-settled Keno round', async ({ page }) => {
+  await page.goto('/')
+  const lobby = page.getByRole('region', { name: 'Game lobby' })
+  await lobby.getByRole('button', { name: 'Tables' }).click()
+  await expect(lobby.locator('.game-card')).toHaveCount(2)
+  await lobby.getByRole('button', { name: 'Favorite Baccarat' }).click()
+  await lobby.getByRole('button', { name: 'Favorites', exact: true }).click()
+  await expect(lobby.locator('.game-card')).toHaveCount(1)
+  await lobby.getByRole('button', { name: 'Draws', exact: true }).click()
+  await lobby.getByRole('button', { name: /^Keno / }).click()
+  const game = page.getByRole('dialog', { name: 'Keno' })
+  await expect(game.getByRole('button', { name: 'Draw numbers' })).toBeDisabled()
+  for (let number = 1; number <= 5; number++) {
+    await game.getByRole('button', { name: String(number), exact: true }).click()
+  }
+  await game.getByRole('button', { name: 'Draw numbers' }).click()
+  await expect(game.locator('[data-drawn=true]')).toHaveCount(10)
+  await expect(game.getByText(/^Payout .* XLM$/)).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('region', { name: 'Recently played' })).toContainText('Keno')
+})

@@ -19,7 +19,18 @@ export function Play({
   const [amount, setAmount] = useState('1')
   const [target, setTarget] = useState(50)
   const [limbo, setLimbo] = useState('2.00')
-  const [side, setSide] = useState('Heads')
+  const [side, setSide] = useState(
+    game.id === 'roulette' ? 'Red' : game.id === 'baccarat' ? 'Player' : 'Heads',
+  )
+  const [numbers, setNumbers] = useState<number[]>([])
+  const choices =
+    game.id === 'coin'
+      ? ['Heads', 'Tails']
+      : game.id === 'roulette'
+        ? ['Red', 'Black', 'Zero']
+        : game.id === 'baccarat'
+          ? ['Player', 'Banker', 'Tie']
+          : []
   const [result, setResult] = useState<Result>()
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -32,14 +43,14 @@ export function Play({
     setError('')
     try {
       const [whole, fraction = ''] = limbo.split('.')
-      const setting =
-        game.id === 'dice'
-          ? target
-          : game.id === 'coin'
-            ? side
-            : /^\d{1,3}(\.\d{1,2})?$/.test(limbo)
-              ? Number(whole + fraction.padEnd(2, '0'))
-              : null
+      let setting: unknown = side
+      if (game.id === 'dice') setting = target
+      if (game.id === 'keno') setting = numbers
+      if (game.id === 'limbo') {
+        setting = /^\d{1,3}(\.\d{1,2})?$/.test(limbo)
+          ? Number(whole + fraction.padEnd(2, '0'))
+          : null
+      }
       setResult(await act({ action, game: game.id, amount, setting, tile }))
       setAnimation((value) => value + 1)
     } catch (failure) {
@@ -55,6 +66,10 @@ export function Play({
     plinko: 'Drop ball',
     limbo: 'Launch',
     coin: 'Flip coin',
+    roulette: 'Spin roulette',
+    keno: 'Draw numbers',
+    wheel: 'Spin wheel',
+    baccarat: 'Deal cards',
   }
   return (
     <section
@@ -108,9 +123,9 @@ export function Play({
               </div>
             </label>
           )}
-          {game.id === 'coin' && (
+          {choices.length > 0 && (
             <div className="segmented">
-              {['Heads', 'Tails'].map((value) => (
+              {choices.map((value) => (
                 <button
                   key={value}
                   aria-pressed={side === value}
@@ -133,7 +148,9 @@ export function Play({
           ) : (
             <button
               className="button primary"
-              disabled={busy || !state || state.paused}
+              disabled={
+                busy || !state || state.paused || (game.id === 'keno' && numbers.length !== 5)
+              }
               onClick={() => send('play')}
             >
               {busy ? 'Resolving…' : buttonText[game.id]}
@@ -143,6 +160,12 @@ export function Play({
           <p className="game-rule">
             <CircleHelp size={15} />
             {game.subtitle}.
+            {game.id === 'keno' && ' Gross returns for 2–5 matches: 1.5×, 6.5×, 20×, 125×.'}
+            {game.id === 'wheel' &&
+              ' Twelve equally likely segments: six blanks, three 1.5× returns, plus 1.75×, 2× and 3.5×.'}
+            {game.id === 'roulette' && ' Gross return: 2× for a color and 36× for zero.'}
+            {game.id === 'baccarat' &&
+              ' Gross returns: Player 2×, Banker 1.95×, Tie 9×. A tie returns a Player or Banker stake.'}
           </p>
         </div>
         <div className="play-stage">
@@ -164,6 +187,66 @@ export function Play({
                 )
               })}
             </div>
+          ) : game.id === 'keno' ? (
+            <div className="keno-board">
+              <p>{numbers.length} of 5 selected</p>
+              <div className="keno-grid">
+                {Array.from({ length: 40 }, (_, i) => i + 1).map((number) => (
+                  <button
+                    key={number}
+                    aria-pressed={numbers.includes(number)}
+                    data-drawn={result?.board?.includes(number)}
+                    disabled={busy || (numbers.length === 5 && !numbers.includes(number))}
+                    onClick={() => {
+                      setResult(undefined)
+                      setNumbers(
+                        numbers.includes(number)
+                          ? numbers.filter((value) => value !== number)
+                          : [...numbers, number],
+                      )
+                    }}
+                  >
+                    {number}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : game.id === 'baccarat' && result?.hand ? (
+            <div className="baccarat-hands">
+              {(['player', 'banker'] as const).map((name) => (
+                <div key={name}>
+                  <strong>
+                    {name === 'player' ? 'Player' : 'Banker'} ·{' '}
+                    {name === 'player' ? result.hand!.playerTotal : result.hand!.bankerTotal}
+                  </strong>
+                  <div>
+                    {result.hand![name].map((card, index) => (
+                      <span key={index} data-red={Math.floor(card / 13) % 2 === 1}>
+                        {
+                          ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'][
+                            card % 13
+                          ]
+                        }
+                        {['♠', '♥', '♣', '♦'][Math.floor(card / 13)]}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : game.id === 'wheel' || game.id === 'roulette' ? (
+            <motion.div
+              key={animation}
+              className={'spin-display cover-' + game.id}
+              initial={animation ? { rotate: -120, scale: 0.85 } : false}
+              animate={{ rotate: 0, scale: 1 }}
+              transition={{ duration: 0.42 }}
+              aria-hidden="true"
+            >
+              <strong>
+                {game.id === 'roulette' ? (result?.board?.[0] ?? '·') : (result?.message ?? '·')}
+              </strong>
+            </motion.div>
           ) : game.id === 'plinko' ? (
             <Plinko key={animation} path={result?.path} />
           ) : (

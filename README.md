@@ -1,6 +1,6 @@
 # RemitPulse Stellar Arcade
 
-This repo contains the Next.js and TypeScript frontend for the RemitPulse Testnet casino. Dice, Mines, Plinko, Limbo and Coin Flip use simulated XLM. Freighter connects to native XLM payments on Stellar Testnet. The activity and operator views use XLM throughout.
+This repo contains the Next.js and TypeScript frontend for the RemitPulse Testnet casino. Dice, Mines, Plinko, Limbo, Coin Flip, European Roulette, Keno, Wheel, and Baccarat use simulated XLM. Filter the lobby by category, save favorite games per browser, and return to games from your ledger history. Freighter connects to native XLM payments on Stellar Testnet. The activity and operator views use XLM throughout.
 
 ## Local development
 
