@@ -22,6 +22,30 @@ export default function Operator() {
   const [reportToken, setReportToken] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [notice, setNotice] = useState('')
+  async function loadReport(authorizedToken: string) {
+    const response = await fetch('/api/casino?admin', {
+      headers: { Authorization: 'Bearer ' + authorizedToken },
+    })
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error)
+    setReportToken(authorizedToken)
+    setReport(data)
+  }
+
+  async function onReconciled(message: string) {
+    setNotice(message)
+    setError('')
+    setBusy(true)
+    try {
+      await loadReport(reportToken)
+    } catch {
+      setError('The transfer was reconciled, but the report could not refresh. Reload the report.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <main className="operator">
       <Link href="/">RemitPulse lobby</Link>
@@ -31,15 +55,10 @@ export default function Operator() {
         onSubmit={async (event) => {
           event.preventDefault()
           setError('')
+          setNotice('')
           setBusy(true)
           try {
-            const response = await fetch('/api/casino?admin', {
-              headers: { Authorization: 'Bearer ' + token },
-            })
-            const data = await response.json()
-            if (!response.ok) throw new Error(data.error)
-            setReportToken(token)
-            setReport(data)
+            await loadReport(token)
           } catch (failure) {
             setReport(undefined)
             setError((failure as Error).message)
@@ -68,6 +87,7 @@ export default function Operator() {
           {error}
         </p>
       )}
+      {notice && <p role="status">{notice}</p>}
       {report && (
         <>
           <div className="summary-grid">
@@ -125,12 +145,14 @@ export default function Operator() {
             title="Pending Testnet deposits"
             direction="inbound"
             token={reportToken}
+            onReconciled={onReconciled}
             transfers={report.pendingDeposits}
           />
           <TransferQueue
             title="Pending Testnet withdrawals"
             direction="outbound"
             token={reportToken}
+            onReconciled={onReconciled}
             transfers={report.pending}
           />
         </>
@@ -143,11 +165,13 @@ function TransferQueue({
   title,
   direction,
   token,
+  onReconciled,
   transfers,
 }: {
   title: string
   direction: 'inbound' | 'outbound'
   token: string
+  onReconciled: (message: string) => Promise<void>
   transfers?: PendingTransfer[]
 }) {
   return (
@@ -164,7 +188,7 @@ function TransferQueue({
               </a>
               <span>
                 <strong>{xlm(transfer.amount)} XLM</strong>
-                <HorizonStatus hash={transfer.hash} token={token} />
+                <HorizonStatus hash={transfer.hash} token={token} onReconciled={onReconciled} />
                 {transfer.wallet && (
                   <>
                     <small>Wallet {transfer.wallet}</small>
@@ -202,7 +226,15 @@ function TransferQueue({
   )
 }
 
-function HorizonStatus({ hash, token }: { hash: string; token: string }) {
+function HorizonStatus({
+  hash,
+  token,
+  onReconciled,
+}: {
+  hash: string
+  token: string
+  onReconciled: (message: string) => Promise<void>
+}) {
   const [status, setStatus] = useState('')
   const [checking, setChecking] = useState(false)
   const [canReconcile, setCanReconcile] = useState(false)
@@ -217,7 +249,7 @@ function HorizonStatus({ hash, token }: { hash: string; token: string }) {
       const data = await response.json()
       if (!response.ok) throw new Error(data.error)
       if (reconcile) {
-        setStatus(data.message)
+        await onReconciled(data.message)
         return
       }
       setCanReconcile(data.status === 'confirmed')
