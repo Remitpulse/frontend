@@ -10,6 +10,7 @@ type Report = {
   totals: { demo: string; testnet: string }
   activity: { kind: string; count: number; amount: string }[]
   pending: { hash: string; amount: string }[]
+  reconciliation?: { reserved: string; liabilities: string; grossDifference: string | null }
   pendingDeposits?: { hash: string; amount: string }[]
 }
 
@@ -83,6 +84,27 @@ export default function Operator() {
               <strong>{xlm(report.totals.demo)} XLM</strong>
             </div>
           </div>
+          {report.reconciliation && (
+            <section>
+              <h2>Treasury reconciliation</h2>
+              <dl>
+                <dt>Reserved withdrawals</dt>
+                <dd>{xlm(report.reconciliation.reserved)} XLM</dd>
+                <dt>Total recorded liabilities</dt>
+                <dd>{xlm(report.reconciliation.liabilities)} XLM</dd>
+                <dt>Treasury balance less recorded liabilities</dt>
+                <dd>
+                  {report.reconciliation.grossDifference === null
+                    ? 'Unavailable'
+                    : xlm(report.reconciliation.grossDifference) + ' XLM'}
+                </dd>
+              </dl>
+              <p>
+                Pending transfers can affect the comparison. The treasury balance includes Stellar
+                account reserves.
+              </p>
+            </section>
+          )}
           <h2>Ledger activity</h2>
           <ul className="history">
             {report.activity.map((item) => (
