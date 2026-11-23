@@ -10,3 +10,9 @@ This repo contains the Next.js and TypeScript frontend for the RemitPulse Testne
 4. Load `/operator` with the token configured in the backend.
 
 The frontend uses a same-origin API relay. Set `CASINO_BACKEND_URL` if the backend is on another private origin. For a production build, run `npm run build` and `npm start`. This milestone permits simulated wagers and Testnet payments only. See [visual architecture](docs/casino-design.md).
+
+## Sportsbook and game controls
+
+Open **Sports** in the arcade navigation. The demo sportsbook publishes fictional football, basketball and tennis fixtures with server-quoted decimal odds. It records one single-selection ticket per fixture, closes the market at kickoff and settles tickets once the simulated match ends. The shared ledger uses simulated XLM. Native Stellar Testnet deposits and withdrawals remain available through the separate wallet balance.
+
+Mines supports 1–24 mines. Dice shows its roll against the chosen cutoff. Roulette and Wheel animate the actual server-settled pocket or segment.

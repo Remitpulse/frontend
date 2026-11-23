@@ -80,3 +80,19 @@ test('favorites and new game filters lead to a server-settled Keno round', async
   await page.keyboard.press('Escape')
   await expect(page.getByRole('region', { name: 'Recently played' })).toContainText('Keno')
 })
+
+test('places a simulated XLM sports ticket from the quoted odds', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Sports', exact: true }).click()
+  await page.getByRole('button', { name: 'Basketball', exact: true }).click()
+  const fixture = page.locator('.fixture').filter({ hasText: 'Metro Comets' })
+  await fixture.getByRole('button', { name: /^Metro Comets / }).click()
+  const slip = page.getByRole('region', { name: 'Bet slip' })
+  await slip.getByRole('textbox').fill('0.1234567')
+  await expect(slip.getByText('Potential return')).toBeVisible()
+  await slip.getByRole('button', { name: 'Place demo bet' }).click()
+  await expect(page.getByText('Demo ticket accepted.')).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Your tickets' })).toContainText(
+    '0.1234567 XLM stake',
+  )
+})

@@ -1283,3 +1283,368 @@ dialog::backdrop {
     grid-template-columns: repeat(8, minmax(0, 1fr));
   }
 }
+
+.sportsbook {
+  padding-bottom: 26px;
+}
+.sports-hero {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: clamp(20px, 4vw, 48px);
+  border: 1px solid #3f466d;
+  border-radius: 20px;
+  background:
+    radial-gradient(ellipse at 92% 2%, #4a3d78, transparent 59%),
+    linear-gradient(112deg, #101227, #15162b);
+}
+.sports-hero h1 {
+  font-size: clamp(2.45rem, 6vw, 5.15rem);
+  font-weight: 780;
+  letter-spacing: -0.057em;
+  line-height: 1;
+}
+.sports-hero p:not(.eyebrow) {
+  margin-top: 10px;
+  color: #d9d2ec;
+  max-width: 44ch;
+  line-height: 1.5;
+}
+.sports-hero > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mint);
+  background: #101623;
+  border: 1px solid #43546b;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.84rem;
+}
+.sports-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(245px, 1fr);
+  gap: 14px;
+  align-items: start;
+  margin-top: 16px;
+}
+.sports-markets .categories {
+  margin-top: 0;
+}
+.fixture-list,
+.sports-tickets ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  display: grid;
+  gap: 9px;
+}
+.fixture,
+.slip,
+.sports-tickets {
+  padding: 15px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: #151322;
+  border-radius: 12px;
+}
+.fixture-meta {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  color: #c6bdd8;
+  font-size: 0.82rem;
+}
+.fixture-meta span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fixture h2 {
+  font-size: 1.1rem;
+  font-weight: 730;
+  margin: 8px 0 9px;
+}
+.fixture h2 span {
+  color: #a99bbd;
+  font-size: 0.85rem;
+}
+.odds-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--option-count), minmax(0, 1fr));
+  gap: 5px;
+}
+.odds-grid button {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3px 8px;
+  padding: 8px;
+  min-height: 48px;
+  text-align: left;
+  background: #211d34;
+  border: 1px solid #3b3150;
+  border-radius: 7px;
+  font-size: 0.81rem;
+  overflow-wrap: anywhere;
+}
+.odds-grid button strong {
+  color: #cdb6ff;
+  font-variant-numeric: tabular-nums;
+}
+.odds-grid button:hover:enabled,
+.odds-grid button[aria-pressed='true'] {
+  background: #342451;
+  border-color: #ab89fd;
+}
+.fixture small,
+.muted {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+.sports-side {
+  display: grid;
+  gap: 12px;
+}
+.slip h2,
+.sports-tickets h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 760;
+  margin-bottom: 11px;
+  font-size: 1.16rem;
+}
+.slip label {
+  display: grid;
+  gap: 7px;
+  margin: 12px 0 8px;
+  font-size: 0.87rem;
+  font-weight: 650;
+}
+.slip .button {
+  width: 100%;
+  margin-top: 12px;
+}
+.slip-return,
+.sports-tickets li > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  justify-content: space-between;
+  font-size: 0.84rem;
+  color: var(--muted);
+}
+.slip-return strong,
+.sports-tickets li strong {
+  color: var(--text);
+}
+.sports-tickets li {
+  display: grid;
+  gap: 4px;
+  border-top: 1px solid var(--line);
+  padding-top: 9px;
+}
+.sports-tickets li small {
+  color: var(--muted);
+}
+.ticket-state {
+  width: max-content;
+  border-radius: 6px;
+  padding: 3px 6px;
+  background: #30254a;
+  color: #dbc6ff;
+  font-size: 0.74rem;
+}
+.ticket-state[data-state='Won'],
+.sports-notice {
+  color: var(--mint);
+}
+.ticket-state[data-state='Lost'] {
+  color: #ffc2cc;
+}
+.sports-notice {
+  margin-top: 9px;
+}
+.play-controls select {
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid #51436c;
+  background: #1a172a;
+  color: var(--text);
+}
+.round-wheel {
+  width: min(220px, 100%);
+  aspect-ratio: 1;
+  position: relative;
+  margin-top: 6px;
+}
+.wheel-face {
+  width: 100%;
+  height: 100%;
+  border: 4px double #f5ce85;
+  border-radius: 50%;
+  position: relative;
+  box-shadow:
+    0 0 20px #e4aa5450,
+    inset 0 0 22px #10081e;
+}
+.wheel-face span {
+  position: absolute;
+  inset: 3px;
+  text-align: center;
+  color: #fff8e7;
+  font-size: 0.72rem;
+}
+.roulette-wheel .wheel-face span {
+  font-size: 0.61rem;
+}
+.wheel-hub {
+  position: absolute;
+  inset: 32%;
+  border-radius: 50%;
+  border: 3px double #f8d58e;
+  background: radial-gradient(circle, #ffe0aa, #a86c31 34%, #482f26 64%, #17121f);
+}
+.wheel-pointer {
+  position: absolute;
+  top: -6px;
+  left: calc(50% - 8px);
+  z-index: 1;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 16px solid #ffe3a6;
+}
+.dice-track {
+  width: min(92%, 390px);
+}
+.track-scales {
+  display: flex;
+  justify-content: space-between;
+  color: #d5c7ed;
+  font-size: 0.8rem;
+}
+.track-bar {
+  position: relative;
+  height: 16px;
+  margin: 12px 0 17px;
+  border-radius: 9px;
+  background: linear-gradient(to right, #59d7ae 0 var(--target), #db6a8b var(--target) 100%);
+}
+.track-target {
+  position: absolute;
+  width: 2px;
+  height: 24px;
+  top: -4px;
+  background: white;
+}
+.track-bar strong {
+  position: absolute;
+  top: 2px;
+  transform: translate(-50%, -50%);
+  background: #20142e;
+  color: #fff;
+  border: 1px solid #d9c1ff;
+  padding: 5px 7px;
+  border-radius: 6px;
+}
+.dice-track p {
+  color: #c9b9e2;
+  font-size: 0.88rem;
+}
+.coin-stage {
+  width: 116px;
+  height: 116px;
+  border-radius: 50%;
+  border: 5px double #f7c77a;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  background: radial-gradient(circle, #f3cc7f, #b77835 61%, #5d2a39);
+  box-shadow: 0 0 28px #f5b06b50;
+  color: #311c2f;
+}
+.coin-stage span {
+  font-size: 2.4rem;
+  line-height: 1;
+}
+.coin-stage small {
+  font-weight: 780;
+}
+@media (max-width: 880px) {
+  .sports-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 730px) {
+  .rail nav {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  .rail nav button {
+    padding-inline: 2px;
+    font-size: 0.68rem;
+  }
+}
+@media (max-width: 420px) {
+  .sports-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .sports-side {
+    display: contents;
+  }
+  .slip {
+    order: -1;
+  }
+}
+.slip {
+  scroll-margin-top: calc(var(--bar-height) + 12px);
+}
+.limbo-stage {
+  position: relative;
+  isolation: isolate;
+  text-align: center;
+  min-height: 145px;
+  width: min(90%, 340px);
+  display: grid;
+  place-content: center;
+  overflow: hidden;
+  border: 1px solid #447aa4;
+  border-radius: 14px;
+  background: #101d31;
+}
+.limbo-grid {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(154deg, transparent 51%, #5ce3fb90 51.5%, transparent 53%),
+    repeating-linear-gradient(90deg, #26527455 0 1px, transparent 1px 24px),
+    repeating-linear-gradient(0deg, #26527455 0 1px, transparent 1px 24px);
+  mask-image: linear-gradient(110deg, transparent, black);
+}
+.limbo-reading {
+  display: grid;
+  text-shadow: 0 1px 12px #090a17;
+}
+.limbo-stage strong {
+  font-size: clamp(2rem, 6vw, 4rem);
+  color: #9cecff;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.limbo-stage small {
+  color: #d2e8fc;
+}
+.sports-hero {
+  background:
+    linear-gradient(90deg, #100e23ed 0%, #100e2380 45%, #100e2320 100%),
+    url('/casino/stadium.webp') center 59% / cover no-repeat,
+    #14172b;
+}

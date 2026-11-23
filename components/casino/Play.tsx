@@ -6,6 +6,7 @@ import { CircleHelp, Gem, Orbit } from 'lucide-react'
 import { type CasinoState, type Game } from '@/lib/casino/catalog'
 import { xlm } from '@/lib/casino/money'
 import type { Result } from './Arcade'
+import { CoinStage, DiceTrack, LimboStage, Spinner } from './GameStage'
 
 export function Play({
   game,
@@ -17,6 +18,7 @@ export function Play({
   act: (input: Record<string, unknown>) => Promise<Result>
 }) {
   const [amount, setAmount] = useState('1')
+  const [mineCount, setMineCount] = useState(3)
   const [target, setTarget] = useState(50)
   const [limbo, setLimbo] = useState('2.00')
   const [side, setSide] = useState(
@@ -45,6 +47,7 @@ export function Play({
       const [whole, fraction = ''] = limbo.split('.')
       let setting: unknown = side
       if (game.id === 'dice') setting = target
+      if (isMines) setting = mineCount
       if (game.id === 'keno') setting = numbers
       if (game.id === 'limbo') {
         setting = /^\d{1,3}(\.\d{1,2})?$/.test(limbo)
@@ -96,6 +99,28 @@ export function Play({
             </div>
           </label>
           <small>Available {state ? xlm(state.demo) : '–'} XLM</small>
+          {isMines && (
+            <label>
+              Mines on the board
+              <select
+                value={round?.mineCount ?? mineCount}
+                disabled={busy || !!round}
+                onChange={(e) => {
+                  setMineCount(Number(e.target.value))
+                  setResult(undefined)
+                }}
+              >
+                {Array.from({ length: 24 }, (_, index) => index + 1).map((count) => (
+                  <option key={count}>{count}</option>
+                ))}
+              </select>
+            </label>
+          )}
+          {isMines && round && (
+            <small>
+              {round.picks.length} of {25 - round.mineCount} safe tiles found
+            </small>
+          )}
           {game.id === 'dice' && (
             <label>
               Roll under {target}
@@ -104,7 +129,10 @@ export function Play({
                 min="2"
                 max="98"
                 value={target}
-                onChange={(e) => setTarget(Number(e.target.value))}
+                onChange={(e) => {
+                  setTarget(Number(e.target.value))
+                  setResult(undefined)
+                }}
                 disabled={busy}
               />
             </label>
@@ -115,7 +143,10 @@ export function Play({
               <div className="amount-input">
                 <input
                   value={limbo}
-                  onChange={(e) => setLimbo(e.target.value)}
+                  onChange={(e) => {
+                    setLimbo(e.target.value)
+                    setResult(undefined)
+                  }}
                   inputMode="decimal"
                   disabled={busy}
                 />
@@ -172,7 +203,7 @@ export function Play({
           {isMines ? (
             <div className="tiles">
               {Array.from({ length: 25 }, (_, index) => {
-                const gem = round?.picks.includes(index)
+                const gem = round?.picks.includes(index) ?? result?.safe?.includes(index)
                 const mine = !round && result?.mines?.includes(index)
                 return (
                   <button
@@ -235,18 +266,17 @@ export function Play({
               ))}
             </div>
           ) : game.id === 'wheel' || game.id === 'roulette' ? (
-            <motion.div
+            <Spinner key={animation} roulette={game.id === 'roulette'} value={result?.board?.[0]} />
+          ) : game.id === 'dice' ? (
+            <DiceTrack
               key={animation}
-              className={'spin-display cover-' + game.id}
-              initial={animation ? { rotate: -120, scale: 0.85 } : false}
-              animate={{ rotate: 0, scale: 1 }}
-              transition={{ duration: 0.42 }}
-              aria-hidden="true"
-            >
-              <strong>
-                {game.id === 'roulette' ? (result?.board?.[0] ?? '·') : (result?.message ?? '·')}
-              </strong>
-            </motion.div>
+              target={target}
+              roll={result?.message ? Number(result.message) : undefined}
+            />
+          ) : game.id === 'limbo' ? (
+            <LimboStage key={animation} outcome={result?.message} target={limbo} />
+          ) : game.id === 'coin' ? (
+            <CoinStage face={result?.message} round={animation} />
           ) : game.id === 'plinko' ? (
             <Plinko key={animation} path={result?.path} />
           ) : (

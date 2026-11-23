@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, MotionConfig } from 'motion/react'
 import {
   ArrowDownToLine,
@@ -12,6 +12,7 @@ import {
   House,
   Layers3,
   Star,
+  Trophy,
   Play as PlayIcon,
   Orbit,
   Search,
@@ -23,6 +24,7 @@ import { gameGroups, games, type CasinoState, type Game } from '@/lib/casino/cat
 import { xlm } from '@/lib/casino/money'
 import { Passkeys } from './Passkeys'
 import { Play } from './Play'
+import { Sportsbook, type SportsMarket } from './Sportsbook'
 import { Vault } from './Vault'
 
 export type Result = {
@@ -31,10 +33,12 @@ export type Result = {
   payout?: string
   path?: number[]
   mines?: number[]
+  safe?: number[]
   bust?: boolean
   hash?: string
   xdr?: string
   options?: unknown
+  sports?: SportsMarket
   board?: number[]
   hand?: {
     player: number[]
@@ -61,7 +65,7 @@ export async function casino(input?: Record<string, unknown>): Promise<Result> {
   return result
 }
 
-type View = 'lobby' | 'activity'
+type View = 'lobby' | 'activity' | 'sports'
 type Category = 'All games' | keyof typeof gameGroups | 'Favorites'
 const categories: Category[] = ['All games', 'Arcade', 'Tables', 'Draws', 'Favorites']
 
@@ -101,7 +105,7 @@ export function Arcade() {
     else dialog.current?.close()
   }, [game, panel])
 
-  async function act(input: Record<string, unknown>) {
+  const act = useCallback(async (input: Record<string, unknown>) => {
     try {
       const result = await casino(input)
       if (result.state) setState(result.state)
@@ -114,7 +118,7 @@ export function Arcade() {
       }
       throw error
     }
-  }
+  }, [])
 
   function close() {
     setGame(undefined)
@@ -206,6 +210,12 @@ export function Arcade() {
             onClick={() => navigate('lobby')}
           >
             <House size={18} /> Lobby
+          </button>
+          <button
+            aria-current={view === 'sports' ? 'page' : undefined}
+            onClick={() => navigate('sports')}
+          >
+            <Trophy size={18} /> Sports
           </button>
           <button
             aria-current={view === 'activity' ? 'page' : undefined}
@@ -376,6 +386,8 @@ export function Arcade() {
               </button>
             </section>
           </>
+        ) : view === 'sports' ? (
+          <Sportsbook state={state} act={act} />
         ) : (
           <section className="activity">
             <p className="eyebrow">
