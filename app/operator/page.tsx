@@ -14,7 +14,12 @@ type Report = {
   totals: { demo: string; testnet: string }
   activity: { kind: string; count: number; amount: string }[]
   pending: PendingTransfer[]
-  reconciliation?: { reserved: string; liabilities: string; grossDifference: string | null }
+  reconciliation?: {
+    reserved: string
+    liabilities: string
+    grossDifference: string | null
+    balanceAudit?: { mismatchedPlayers: number; missingPlayers: number }
+  }
   pendingDeposits?: PendingTransfer[]
   footballRevisions?: {
     event: string
@@ -136,6 +141,21 @@ export default function Operator() {
                 Pending transfers can affect the comparison. The treasury balance includes Stellar
                 account reserves.
               </p>
+              {report.reconciliation.balanceAudit && (
+                <p
+                  className={
+                    report.reconciliation.balanceAudit.mismatchedPlayers ||
+                    report.reconciliation.balanceAudit.missingPlayers
+                      ? 'error-text'
+                      : undefined
+                  }
+                >
+                  {report.reconciliation.balanceAudit.mismatchedPlayers ||
+                  report.reconciliation.balanceAudit.missingPlayers
+                    ? `Ledger discrepancies: ${report.reconciliation.balanceAudit.mismatchedPlayers} mismatched balances and ${report.reconciliation.balanceAudit.missingPlayers} missing player records.`
+                    : 'Player Testnet balances match the ledger entries.'}
+                </p>
+              )}
             </section>
           )}
           <h2>Ledger activity</h2>
