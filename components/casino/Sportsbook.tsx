@@ -26,7 +26,7 @@ type TicketRow = {
   payout: string
   price: number
   score: string | null
-  state: 'Open' | 'Won' | 'Lost'
+  state: 'Open' | 'Won' | 'Lost' | 'Void'
   settles: number
 }
 export type SportsMarket = { events: Event[]; tickets: TicketRow[]; time: number }
@@ -129,7 +129,7 @@ export function Sportsbook({
           </p>
         </div>
         <span>
-          <Flag size={17} /> Simulated fixtures
+          <Flag size={17} /> Simulated wagers
         </span>
       </header>
       <div className="sports-layout">
@@ -157,7 +157,9 @@ export function Sportsbook({
                         <CalendarDays size={15} /> {event.sport} · {event.league}
                       </span>
                       <time dateTime={new Date(event.starts).toISOString()}>
-                        {new Date(event.starts).toLocaleTimeString([], {
+                        {new Date(event.starts).toLocaleString([], {
+                          month: 'short',
+                          day: 'numeric',
                           hour: '2-digit',
                           minute: '2-digit',
                         })}
@@ -193,6 +195,11 @@ export function Sportsbook({
                         </button>
                       ))}
                     </div>
+                    <small>
+                      {event.id.startsWith('football-data:')
+                        ? 'Football data by football-data.org · Simulated odds'
+                        : 'Simulated fixture'}
+                    </small>
                     {booked && <small>Ticket placed</small>}
                   </li>
                 )
@@ -275,7 +282,7 @@ export function Sportsbook({
                     </div>
                     {ticket.state !== 'Open' && (
                       <div>
-                        <span>Return</span>
+                        <span>{ticket.state === 'Void' ? 'Refund' : 'Return'}</span>
                         <strong>{xlm(ticket.payout)} XLM</strong>
                       </div>
                     )}
