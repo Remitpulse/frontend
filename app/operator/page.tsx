@@ -10,6 +10,7 @@ type Report = {
   totals: { demo: string; testnet: string }
   activity: { kind: string; count: number; amount: string }[]
   pending: { hash: string; amount: string }[]
+  pendingDeposits?: { hash: string; amount: string }[]
 }
 
 export default function Operator() {
@@ -94,23 +95,40 @@ export default function Operator() {
               </li>
             ))}
           </ul>
-          <h2>Pending Testnet withdrawals</h2>
-          {report.pending.length ? (
-            <ul className="history">
-              {report.pending.map((transfer) => (
-                <li key={transfer.hash}>
-                  <a href={'https://stellar.expert/explorer/testnet/tx/' + transfer.hash}>
-                    Stellar transaction
-                  </a>
-                  <strong>{xlm(transfer.amount)} XLM</strong>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="empty">No withdrawals awaiting confirmation.</p>
-          )}
+          <TransferQueue title="Pending Testnet deposits" transfers={report.pendingDeposits} />
+          <TransferQueue title="Pending Testnet withdrawals" transfers={report.pending} />
         </>
       )}
     </main>
+  )
+}
+
+function TransferQueue({
+  title,
+  transfers,
+}: {
+  title: string
+  transfers?: { hash: string; amount: string }[]
+}) {
+  return (
+    <section>
+      <h2>{title}</h2>
+      {!transfers ? (
+        <p className="empty">This report does not include this transfer queue.</p>
+      ) : transfers.length ? (
+        <ul className="history">
+          {transfers.map((transfer) => (
+            <li key={transfer.hash}>
+              <a href={'https://stellar.expert/explorer/testnet/tx/' + transfer.hash}>
+                <code>{transfer.hash}</code>
+              </a>
+              <strong>{xlm(transfer.amount)} XLM</strong>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="empty">No transfers awaiting confirmation.</p>
+      )}
+    </section>
   )
 }
