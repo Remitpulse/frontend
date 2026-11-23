@@ -53,6 +53,7 @@ export function Sportsbook({
   const [stake, setStake] = useState('1')
   const [busy, setBusy] = useState(false)
   const [issue, setIssue] = useState('')
+  const [refreshIssue, setRefreshIssue] = useState('')
   const [notice, setNotice] = useState('')
   const [now, setNow] = useState(Date.now)
   const slip = useRef<HTMLElement>(null)
@@ -62,13 +63,21 @@ export function Sportsbook({
   useEffect(() => {
     if (!ready) return
     let cancelled = false
+    let refreshing = false
     async function refresh() {
-      if (requestLock.current) return
+      if (requestLock.current || refreshing) return
+      refreshing = true
       try {
         const result = await act({ action: 'sports-market' })
-        if (!cancelled && !requestLock.current && result.sports) setMarket(result.sports)
-      } catch (error) {
-        if (!cancelled) setIssue((error as Error).message)
+        if (!cancelled && !requestLock.current && result.sports) {
+          setMarket(result.sports)
+          setRefreshIssue('')
+        }
+      } catch {
+        if (!cancelled && !requestLock.current)
+          setRefreshIssue('Could not refresh fixtures. Waiting for an updated market.')
+      } finally {
+        refreshing = false
       }
     }
     void refresh()
@@ -88,7 +97,7 @@ export function Sportsbook({
     !!pick &&
     !!latest &&
     (latest.starts !== pick.event.starts || latestOption?.price !== pick.option.price)
-  const closed = !latest || latest.starts <= now || taken || quoteChanged
+  const closed = !latest || latest.starts <= now || taken || quoteChanged || !!refreshIssue
   let projected: bigint | undefined
   let validStake = false
   try {
@@ -154,7 +163,12 @@ export function Sportsbook({
               </button>
             ))}
           </div>
-          {!events && (
+          {refreshIssue && (
+            <p className="notice" role="status">
+              {refreshIssue}
+            </p>
+          )}
+          {!events && !refreshIssue && (
             <p className="empty" role="status">
               Loading fixtures…
             </p>
