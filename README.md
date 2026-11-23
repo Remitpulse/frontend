@@ -61,3 +61,15 @@ If Horizon has no receipt and the signed envelope has expired, the wallet
 shows that the transaction needs operator review. Use the transaction hash
 from the wallet or Activity when investigating. A reserved withdrawal
 remains in the pending queue until there is a recorded outcome.
+
+### Football fixtures and ticket receipts
+
+When the backend has a football data provider token, the sportsbook displays
+real football fixtures with simulated odds and stakes. Tickets use regulation
+time, including stoppage time. A changed kickoff or quoted price requires a new
+selection. The fixture list displays a separate notice during a feed outage.
+
+Open **Your tickets** to review the settlement and download its receipt.
+Provider score corrections are shown with the time they were observed.
+The contracts checkout can verify the payout offline and compare the ticket
+with the provider's current result.
