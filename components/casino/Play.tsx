@@ -39,6 +39,7 @@ export function Play({
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [animation, setAnimation] = useState(0)
+  const [diceCommitment, setDiceCommitment] = useState<string>()
   const round = state?.round
   const isMines = game.id === 'mines'
 
@@ -58,6 +59,26 @@ export function Play({
       .filter((entry) => entry.game === game.title && ['Payout', 'Result'].includes(entry.kind))
       .slice(0, 5) ?? []
 
+  async function requestDiceCommitment() {
+    const { commitment } = await act({ action: 'dice-commit' })
+    if (!commitment || !/^[a-f0-9]{64}$/.test(commitment)) {
+      throw new Error('Could not obtain a Dice commitment.')
+    }
+    return commitment
+  }
+
+  async function showDiceCommitment() {
+    setBusy(true)
+    setError('')
+    try {
+      setDiceCommitment(await requestDiceCommitment())
+    } catch (failure) {
+      setError((failure as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function send(action: string, tile?: number) {
     setBusy(true)
     setError('')
@@ -74,10 +95,8 @@ export function Play({
       }
       const wager: Record<string, unknown> = { action, game: game.id, amount, setting, tile }
       if (action === 'play' && game.id === 'dice') {
-        const { commitment } = await act({ action: 'dice-commit' })
-        if (!commitment || !/^[a-f0-9]{64}$/.test(commitment)) {
-          throw new Error('Could not obtain a Dice commitment.')
-        }
+        const commitment = diceCommitment ?? (await requestDiceCommitment())
+        setDiceCommitment(undefined)
         const bytes = crypto.getRandomValues(new Uint8Array(32))
         wager.commitment = commitment
         wager.clientSeed = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
@@ -178,6 +197,29 @@ export function Play({
                 disabled={busy}
               />
             </label>
+          )}
+          {game.id === 'dice' && (
+            <details>
+              <summary>Pre-wager Dice proof</summary>
+              <button
+                type="button"
+                className="button outlined"
+                disabled={busy}
+                onClick={showDiceCommitment}
+              >
+                Show next roll commitment
+              </button>
+              {diceCommitment && (
+                <label>
+                  Save this commitment before rolling to compare it with the receipt in Activity.
+                  <input
+                    readOnly
+                    value={diceCommitment}
+                    onFocus={(event) => event.target.select()}
+                  />
+                </label>
+              )}
+            </details>
           )}
           {game.id === 'limbo' && (
             <label>
