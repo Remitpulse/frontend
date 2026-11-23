@@ -6,6 +6,7 @@ import type { NextConfig } from 'next'
 // security headers here.
 
 const nextConfig: NextConfig = {
+  output: process.env.CASINO_STANDALONE === '1' ? 'standalone' : undefined,
   // Next 16 keeps reactStrictMode defaulting to true, but we set it explicitly
   // so the behavior is stable across 15 → 16 upgrades.
   reactStrictMode: true,

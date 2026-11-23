@@ -2,7 +2,8 @@ import type { NextRequest } from 'next/server'
 
 async function relay(request: NextRequest) {
   const origin = request.headers.get('origin')
-  if (request.method === 'POST' && origin && origin !== request.nextUrl.origin) {
+  const expectedOrigin = process.env.CASINO_PUBLIC_ORIGIN || request.nextUrl.origin
+  if (request.method === 'POST' && origin && origin !== expectedOrigin) {
     return Response.json({ error: 'Use the casino’s own page.' }, { status: 403 })
   }
   const admin = request.nextUrl.searchParams.has('admin')
