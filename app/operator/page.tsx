@@ -11,6 +11,8 @@ type PendingTransfer = { hash: string; amount: string; wallet?: string | null }
 type Report = {
   treasury: string | null
   treasuryIssue: string
+  ledgerObservedAt?: string
+  treasuryObservedAt?: string | null
   totals: { demo: string; testnet: string }
   activity: { kind: string; count: number; amount: string }[]
   pending: PendingTransfer[]
@@ -130,6 +132,32 @@ export default function Operator() {
           {report.reconciliation && (
             <section>
               <h2>Treasury reconciliation</h2>
+              <a
+                className="button outlined"
+                download="testnet-reconciliation.json"
+                href={
+                  'data:application/json;charset=utf-8,' +
+                  encodeURIComponent(
+                    JSON.stringify(
+                      {
+                        network: 'stellar-testnet',
+                        ledgerObservedAt: report.ledgerObservedAt ?? null,
+                        treasuryObservedAt: report.treasuryObservedAt ?? null,
+                        treasuryStroops: report.treasury,
+                        availableStroops: report.totals.testnet,
+                        reservedStroops: report.reconciliation.reserved,
+                        liabilitiesStroops: report.reconciliation.liabilities,
+                        grossDifferenceStroops: report.reconciliation.grossDifference,
+                        ledgerChecks: report.reconciliation.balanceAudit ?? null,
+                      },
+                      null,
+                      2,
+                    ),
+                  )
+                }
+              >
+                Download reconciliation summary
+              </a>
               <dl>
                 <dt>Reserved withdrawals</dt>
                 <dd>{xlm(report.reconciliation.reserved)} XLM</dd>
