@@ -25,7 +25,15 @@ export function Vault({
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [hash, setHash] = useState('')
-  const [signed, setSigned] = useState(() => sessionStorage.getItem('rp-testnet-deposit') || '')
+  const [signed, setSigned] = useState(() => {
+    try {
+      return typeof window === 'undefined'
+        ? ''
+        : window.sessionStorage.getItem('rp-testnet-deposit') || ''
+    } catch {
+      return ''
+    }
+  })
 
   async function requireTestnet() {
     const network = await getNetwork()
@@ -94,8 +102,12 @@ export function Vault({
           if (approval.error || !approval.signedTxXdr)
             throw new Error('Freighter did not sign the payment.')
           envelope = approval.signedTxXdr
-          sessionStorage.setItem('rp-testnet-deposit', envelope)
           setSigned(envelope)
+          try {
+            window.sessionStorage.setItem('rp-testnet-deposit', envelope)
+          } catch {
+            // The current dialog can still submit or retry the signed payment.
+          }
         }
         setStatus('Waiting for Stellar Testnet confirmation…')
         result = await act(
@@ -103,8 +115,12 @@ export function Vault({
             ? { action: 'deposit-retry', hash: state.deposit.hash }
             : { action: 'deposit-submit', xdr: envelope },
         )
-        sessionStorage.removeItem('rp-testnet-deposit')
         setSigned('')
+        try {
+          window.sessionStorage.removeItem('rp-testnet-deposit')
+        } catch {
+          // Transfer confirmation is already recorded by the server.
+        }
       }
       setStatus(result.message || 'Transfer confirmed.')
       setHash(result.hash || '')
