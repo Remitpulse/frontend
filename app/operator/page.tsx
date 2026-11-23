@@ -119,15 +119,31 @@ export default function Operator() {
               </li>
             ))}
           </ul>
-          <TransferQueue title="Pending Testnet deposits" transfers={report.pendingDeposits} />
-          <TransferQueue title="Pending Testnet withdrawals" transfers={report.pending} />
+          <TransferQueue
+            title="Pending Testnet deposits"
+            direction="inbound"
+            transfers={report.pendingDeposits}
+          />
+          <TransferQueue
+            title="Pending Testnet withdrawals"
+            direction="outbound"
+            transfers={report.pending}
+          />
         </>
       )}
     </main>
   )
 }
 
-function TransferQueue({ title, transfers }: { title: string; transfers?: PendingTransfer[] }) {
+function TransferQueue({
+  title,
+  direction,
+  transfers,
+}: {
+  title: string
+  direction: 'inbound' | 'outbound'
+  transfers?: PendingTransfer[]
+}) {
   return (
     <section>
       <h2>{title}</h2>
@@ -142,7 +158,32 @@ function TransferQueue({ title, transfers }: { title: string; transfers?: Pendin
               </a>
               <span>
                 <strong>{xlm(transfer.amount)} XLM</strong>
-                {transfer.wallet && <small title={transfer.wallet}>Wallet {transfer.wallet}</small>}
+                {transfer.wallet && (
+                  <>
+                    <small>Wallet {transfer.wallet}</small>
+                    <a
+                      download={`testnet-transfer-${transfer.hash.slice(0, 12)}.json`}
+                      href={
+                        'data:application/json;charset=utf-8,' +
+                        encodeURIComponent(
+                          JSON.stringify(
+                            {
+                              network: 'stellar-testnet',
+                              hash: transfer.hash,
+                              direction,
+                              stroops: transfer.amount,
+                              counterparty: transfer.wallet,
+                            },
+                            null,
+                            2,
+                          ),
+                        )
+                      }
+                    >
+                      Download transfer record
+                    </a>
+                  </>
+                )}
               </span>
             </li>
           ))}
