@@ -19,6 +19,7 @@ type Report = {
 export default function Operator() {
   const [token, setToken] = useState('')
   const [report, setReport] = useState<Report>()
+  const [reportToken, setReportToken] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   return (
@@ -37,6 +38,7 @@ export default function Operator() {
             })
             const data = await response.json()
             if (!response.ok) throw new Error(data.error)
+            setReportToken(token)
             setReport(data)
           } catch (failure) {
             setReport(undefined)
@@ -122,11 +124,13 @@ export default function Operator() {
           <TransferQueue
             title="Pending Testnet deposits"
             direction="inbound"
+            token={reportToken}
             transfers={report.pendingDeposits}
           />
           <TransferQueue
             title="Pending Testnet withdrawals"
             direction="outbound"
+            token={reportToken}
             transfers={report.pending}
           />
         </>
@@ -138,10 +142,12 @@ export default function Operator() {
 function TransferQueue({
   title,
   direction,
+  token,
   transfers,
 }: {
   title: string
   direction: 'inbound' | 'outbound'
+  token: string
   transfers?: PendingTransfer[]
 }) {
   return (
@@ -158,6 +164,7 @@ function TransferQueue({
               </a>
               <span>
                 <strong>{xlm(transfer.amount)} XLM</strong>
+                <HorizonStatus hash={transfer.hash} token={token} />
                 {transfer.wallet && (
                   <>
                     <small>Wallet {transfer.wallet}</small>
@@ -192,5 +199,39 @@ function TransferQueue({
         <p className="empty">No transfers awaiting confirmation.</p>
       )}
     </section>
+  )
+}
+
+function HorizonStatus({ hash, token }: { hash: string; token: string }) {
+  const [status, setStatus] = useState('')
+  const [checking, setChecking] = useState(false)
+  async function check() {
+    setChecking(true)
+    try {
+      const response = await fetch('/api/casino?admin&transfer=' + hash, {
+        headers: { Authorization: 'Bearer ' + token },
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error)
+      setStatus(
+        data.status === 'not-found'
+          ? 'Horizon has no record of this hash.'
+          : data.status === 'confirmed'
+            ? 'Confirmed on Testnet.'
+            : 'Recorded as failed on Testnet.',
+      )
+    } catch (error) {
+      setStatus((error as Error).message)
+    } finally {
+      setChecking(false)
+    }
+  }
+  return (
+    <div>
+      <button className="button outlined" type="button" disabled={checking} onClick={check}>
+        {checking ? 'Checking…' : 'Check network status'}
+      </button>
+      {status && <small role="status">{status}</small>}
+    </div>
   )
 }

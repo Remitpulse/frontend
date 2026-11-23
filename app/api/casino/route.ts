@@ -7,6 +7,11 @@ async function relay(request: NextRequest) {
     return Response.json({ error: 'Use the casino’s own page.' }, { status: 403 })
   }
   const admin = request.nextUrl.searchParams.has('admin')
+  const transfer = request.nextUrl.searchParams.get('transfer')
+  if (admin && transfer !== null && !/^[a-f0-9]{64}$/.test(transfer)) {
+    return Response.json({ error: 'Invalid transfer hash.' }, { status: 400 })
+  }
+  const path = admin ? (transfer ? '/admin/transfer/' + transfer : '/admin') : '/game'
   const backend = process.env.CASINO_BACKEND_URL || 'http://127.0.0.1:4010'
   const headers = new Headers()
   for (const key of ['cookie', 'content-type', 'authorization']) {
@@ -14,7 +19,7 @@ async function relay(request: NextRequest) {
     if (value) headers.set(key, value)
   }
   try {
-    const response = await fetch(new URL(admin ? '/admin' : '/game', backend), {
+    const response = await fetch(new URL(path, backend), {
       method: request.method,
       headers,
       body: request.method === 'POST' ? await request.text() : undefined,
