@@ -13,3 +13,6 @@ certificates
 .husky/_
 playwright-report/
 test-results/
+
+# Local Stellar casino demo database
+.casino-data/
