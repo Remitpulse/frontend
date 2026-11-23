@@ -4,6 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { xlm } from '@/lib/casino/money'
 
+type PendingDirection = 'inbound' | 'outbound'
+
 type PendingTransfer = { hash: string; amount: string; wallet?: string | null }
 
 type Report = {
@@ -169,7 +171,7 @@ function TransferQueue({
   transfers,
 }: {
   title: string
-  direction: 'inbound' | 'outbound'
+  direction: PendingDirection
   token: string
   onReconciled: (message: string) => Promise<void>
   transfers?: PendingTransfer[]
@@ -188,7 +190,12 @@ function TransferQueue({
               </a>
               <span>
                 <strong>{xlm(transfer.amount)} XLM</strong>
-                <HorizonStatus hash={transfer.hash} token={token} onReconciled={onReconciled} />
+                <HorizonStatus
+                  hash={transfer.hash}
+                  token={token}
+                  direction={direction}
+                  onReconciled={onReconciled}
+                />
                 {transfer.wallet && (
                   <>
                     <small>Wallet {transfer.wallet}</small>
@@ -229,18 +236,20 @@ function TransferQueue({
 function HorizonStatus({
   hash,
   token,
+  direction,
   onReconciled,
 }: {
   hash: string
   token: string
+  direction: PendingDirection
   onReconciled: (message: string) => Promise<void>
 }) {
   const [status, setStatus] = useState('')
   const [checking, setChecking] = useState(false)
-  const [canReconcile, setCanReconcile] = useState(false)
+  const [recovery, setRecovery] = useState<'confirmed' | 'failed'>()
   async function check(reconcile = false) {
     setChecking(true)
-    setCanReconcile(false)
+    setRecovery(undefined)
     try {
       const response = await fetch('/api/casino?admin&transfer=' + hash, {
         headers: { Authorization: 'Bearer ' + token },
@@ -252,7 +261,9 @@ function HorizonStatus({
         await onReconciled(data.message)
         return
       }
-      setCanReconcile(data.status === 'confirmed')
+      if (data.status === 'confirmed' || (data.status === 'failed' && direction === 'outbound')) {
+        setRecovery(data.status)
+      }
       setStatus(
         data.status === 'not-found'
           ? 'Horizon has no record of this hash.'
@@ -271,9 +282,11 @@ function HorizonStatus({
       <button className="button outlined" type="button" disabled={checking} onClick={() => check()}>
         {checking ? 'Checking…' : 'Check network status'}
       </button>
-      {canReconcile && (
+      {recovery && (
         <button className="button outlined" type="button" onClick={() => check(true)}>
-          Reconcile confirmed transfer
+          {recovery === 'failed'
+            ? 'Return failed withdrawal reserve'
+            : 'Reconcile confirmed transfer'}
         </button>
       )}
       {status && <small role="status">{status}</small>}
