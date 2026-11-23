@@ -4,14 +4,16 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { xlm } from '@/lib/casino/money'
 
+type PendingTransfer = { hash: string; amount: string; wallet?: string | null }
+
 type Report = {
   treasury: string | null
   treasuryIssue: string
   totals: { demo: string; testnet: string }
   activity: { kind: string; count: number; amount: string }[]
-  pending: { hash: string; amount: string }[]
+  pending: PendingTransfer[]
   reconciliation?: { reserved: string; liabilities: string; grossDifference: string | null }
-  pendingDeposits?: { hash: string; amount: string }[]
+  pendingDeposits?: PendingTransfer[]
 }
 
 export default function Operator() {
@@ -125,13 +127,7 @@ export default function Operator() {
   )
 }
 
-function TransferQueue({
-  title,
-  transfers,
-}: {
-  title: string
-  transfers?: { hash: string; amount: string }[]
-}) {
+function TransferQueue({ title, transfers }: { title: string; transfers?: PendingTransfer[] }) {
   return (
     <section>
       <h2>{title}</h2>
@@ -144,7 +140,10 @@ function TransferQueue({
               <a href={'https://stellar.expert/explorer/testnet/tx/' + transfer.hash}>
                 <code>{transfer.hash}</code>
               </a>
-              <strong>{xlm(transfer.amount)} XLM</strong>
+              <span>
+                <strong>{xlm(transfer.amount)} XLM</strong>
+                {transfer.wallet && <small title={transfer.wallet}>Wallet {transfer.wallet}</small>}
+              </span>
             </li>
           ))}
         </ul>
