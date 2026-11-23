@@ -2038,3 +2038,152 @@ dialog::backdrop {
   background: radial-gradient(circle, #d4b4ff, #79539f 70%);
   color: #20182e;
 }
+
+.dice-arena {
+  width: min(100%, 540px);
+  padding: 3px 0 4px;
+}
+.dice-felt {
+  isolation: isolate;
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  overflow: hidden;
+  min-height: 192px;
+  padding: clamp(12px, 2vw, 21px);
+  border: 4px solid #43314e;
+  border-radius: 27px;
+  background: radial-gradient(ellipse at 50% 36%, #523868, #221630 70%);
+  box-shadow:
+    inset 0 0 22px #120d1c,
+    0 8px 18px #0c07166e;
+}
+.dice-rim {
+  position: absolute;
+  inset: 6px;
+  z-index: -1;
+  border: 1px solid #cba8f84f;
+  border-radius: 19px;
+}
+.dice-table-mark {
+  color: #d6baf2;
+  font-weight: 740;
+  font-size: clamp(0.62rem, 2vw, 0.78rem);
+  letter-spacing: 0.13em;
+}
+.dice-pieces {
+  display: flex;
+  justify-content: center;
+  align-items: end;
+  gap: clamp(3px, 1vw, 12px);
+  width: 100%;
+  perspective: 530px;
+}
+.dice-piece {
+  flex: 0 1 77px;
+  min-width: 0;
+  position: relative;
+  filter: drop-shadow(0 7px 5px #130a19d9);
+}
+.dice-piece[data-fraction='true'] {
+  flex-basis: 63px;
+}
+.dice-piece:nth-child(3) {
+  margin-left: clamp(9px, 1.8vw, 20px);
+}
+.dice-decimal {
+  position: absolute;
+  left: clamp(-14px, -1.2vw, -7px);
+  bottom: 7%;
+  color: #e2c8fa;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.dice-stone {
+  isolation: isolate;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  clip-path: polygon(50% 0, 85% 19%, 100% 55%, 76% 83%, 50% 100%, 24% 83%, 0 55%, 15% 19%);
+  background: conic-gradient(
+    from 0deg,
+    #d4a8ff,
+    #8955ba,
+    #3a205d,
+    #62338e,
+    #b68ce9,
+    #7450a3,
+    #d4a8ff
+  );
+}
+.dice-facet-top,
+.dice-facet-bottom {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+.dice-facet-top {
+  clip-path: polygon(50% 0, 85% 19%, 100% 55%, 50% 47%, 0 55%, 15% 19%);
+  background: linear-gradient(125deg, #f5d9ffb3, #5b297a40 61%);
+}
+.dice-facet-bottom {
+  clip-path: polygon(50% 0, 75% 56%, 50% 100%, 25% 56%);
+  background: linear-gradient(150deg, #d4a8ffa0, #623187 57%, #3c215e);
+}
+[data-fraction='true'] .dice-stone {
+  background: conic-gradient(#c3cdfc, #6e7cc6, #313466, #8a8dd0, #c3cdfc);
+}
+[data-fraction='true'] .dice-facet-bottom {
+  background: linear-gradient(150deg, #d2d8ff, #6463ae 78%, #35336b);
+}
+.dice-engraving {
+  color: #fff9ff;
+  text-shadow: 0 2px 2px #23163a;
+  font-size: clamp(1.1rem, 3.2vw, 2.25rem);
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.dice-readout {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: #171022aa;
+  border: 1px solid #b891df60;
+  border-radius: 9px;
+  padding: 5px 10px;
+  font-variant-numeric: tabular-nums;
+}
+.dice-readout span,
+.dice-probability span {
+  color: #cbb9df;
+  font-size: 0.77rem;
+}
+.dice-readout strong {
+  color: #f1deff;
+  letter-spacing: 0.045em;
+}
+.dice-probability {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin: 10px 0;
+}
+.dice-probability > div {
+  display: grid;
+  padding: 5px 8px;
+  background: #21192e;
+  border: 1px solid #443353;
+  border-radius: 8px;
+}
+.dice-probability strong {
+  color: #ebd7fb;
+  font-size: 0.86rem;
+}
+.dice-arena .dice-track {
+  width: 100%;
+}

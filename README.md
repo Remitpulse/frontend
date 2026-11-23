@@ -18,7 +18,7 @@ Open `http://localhost:3000`. Set `CASINO_BACKEND_URL` for a different backend a
 | Game | How to play |
 | --- | --- |
 | Mines | Set 1–24 mines, reveal gems and cash out. The table shows the current return and the next gem’s potential return. |
-| Dice | Set a threshold and see the server’s roll on the track. |
+| Dice | Set a threshold and see four tumbling dice show the exact server roll from 00.00 to 99.99. The track shows the cutoff and win chance. |
 | Plinko | Watch the eight-step drop land in the server-selected multiplier slot. |
 | Limbo | Set a target and compare it with the final multiplier. |
 | Coin Flip | Choose heads or tails and watch the settled face turn into view. |

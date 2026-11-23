@@ -51,31 +51,81 @@ export function Spinner({ roulette, value }: { roulette: boolean; value?: number
   )
 }
 
-export function DiceTrack({ target, roll }: { target: number; roll?: number }) {
+export function DiceTrack({ target, roll }: { target: number; roll?: string }) {
+  const reducedMotion = useReducedMotion()
+  const digits = roll?.replace('.', '') ?? '0000'
   return (
-    <div className="dice-track" aria-hidden="true">
-      <div className="track-scales">
-        <span>0</span>
-        <span>25</span>
-        <span>50</span>
-        <span>75</span>
-        <span>100</span>
+    <div className="dice-arena">
+      <div className="dice-felt" aria-hidden="true">
+        <div className="dice-rim" />
+        <span className="dice-table-mark">STELLAR · PERCENTILE</span>
+        <div className="dice-pieces">
+          {Array.from(digits, (digit, index) => (
+            <div className="dice-piece" key={index} data-fraction={index > 1}>
+              {index === 2 && <span className="dice-decimal">.</span>}
+              <motion.div
+                className="dice-stone"
+                initial={
+                  roll && !reducedMotion
+                    ? { y: -55, x: index % 2 ? 35 : -35, rotate: -170, rotateY: -220, scale: 0.7 }
+                    : false
+                }
+                animate={{
+                  y: roll && !reducedMotion ? [-55, 10, -18, 0, -5, 0] : 0,
+                  x: 0,
+                  rotate: 0,
+                  rotateY: 0,
+                  scale: 1,
+                }}
+                transition={{
+                  duration: roll && !reducedMotion ? 0.82 : 0,
+                  delay: roll && !reducedMotion ? index * 0.055 : 0,
+                  ease: 'easeOut',
+                }}
+              >
+                <span className="dice-facet-top" />
+                <span className="dice-facet-bottom" />
+                <span className="dice-engraving">{roll ? digit : '·'}</span>
+              </motion.div>
+            </div>
+          ))}
+        </div>
+        <div className="dice-readout">
+          <span>{roll ? 'Server roll' : 'Roll range'}</span>
+          <strong>{roll ?? '00.00–99.99'}</strong>
+        </div>
       </div>
-      <div className="track-bar" style={{ '--target': target + '%' } as React.CSSProperties}>
-        <span className="track-target" style={{ left: target + '%' }} />
-        {roll !== undefined && (
-          <motion.strong
-            initial={{ left: '50%' }}
-            animate={{ left: Math.min(94, Math.max(6, roll)) + '%' }}
-            transition={{ duration: 0.36 }}
-          >
-            {roll.toFixed(2)}
-          </motion.strong>
-        )}
+      <div className="dice-probability">
+        <div>
+          <span>Winning rolls</span>
+          <strong>Under {target}</strong>
+        </div>
+        <div>
+          <span>Win chance</span>
+          <strong>{target}%</strong>
+        </div>
       </div>
-      <p>
-        Roll under <strong>{target}</strong>
-      </p>
+      <div className="dice-track" aria-hidden="true">
+        <div className="track-scales">
+          <span>0</span>
+          <span>25</span>
+          <span>50</span>
+          <span>75</span>
+          <span>100</span>
+        </div>
+        <div className="track-bar" style={{ '--target': target + '%' } as React.CSSProperties}>
+          <span className="track-target" style={{ left: target + '%' }} />
+          {roll !== undefined && (
+            <motion.strong
+              initial={reducedMotion ? false : { left: '50%', opacity: 0 }}
+              animate={{ left: Math.min(94, Math.max(6, Number(roll))) + '%', opacity: 1 }}
+              transition={{ duration: reducedMotion ? 0 : 0.24, delay: reducedMotion ? 0 : 0.82 }}
+            >
+              {roll}
+            </motion.strong>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

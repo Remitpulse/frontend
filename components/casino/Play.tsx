@@ -329,11 +329,7 @@ export function Play({
                 value={result?.board?.[0]}
               />
             ) : game.id === 'dice' ? (
-              <DiceTrack
-                key={animation}
-                target={target}
-                roll={result?.message ? Number(result.message) : undefined}
-              />
+              <DiceTrack key={animation} target={target} roll={result?.message?.padStart(5, '0')} />
             ) : game.id === 'limbo' ? (
               <LimboStage key={animation} outcome={result?.message} target={limbo} />
             ) : game.id === 'coin' ? (
