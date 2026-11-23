@@ -315,9 +315,12 @@ function HorizonStatus({
       if (data.status === 'confirmed' || data.status === 'failed') {
         setRecovery(data.status)
       }
+      const expired = typeof data.expiresAt === 'number' && data.expiresAt < Date.now()
       setStatus(
         data.status === 'not-found'
-          ? 'Horizon has no record of this hash.'
+          ? expired
+            ? 'The signed envelope expired and Horizon has no record of this hash. Investigate before releasing any reserve.'
+            : 'Horizon has no record of this hash.'
           : data.status === 'confirmed'
             ? 'Confirmed on Testnet.'
             : 'Recorded as failed on Testnet.',
