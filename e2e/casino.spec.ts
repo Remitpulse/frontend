@@ -96,3 +96,28 @@ test('places a simulated XLM sports ticket from the quoted odds', async ({ page 
     '0.1234567 XLM stake',
   )
 })
+
+test('captures a Dice commitment and verifies the same receipt after settlement', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await expect(page.getByRole('button', { name: '1000.00 XLM demo balance' })).toBeVisible()
+  await page.getByRole('button', { name: /^Dice / }).click()
+  await page.getByText('Pre-wager Dice proof', { exact: true }).click()
+  await page.getByRole('button', { name: 'Show next roll commitment' }).click()
+  const commitment = page.getByLabel(/Save this commitment before rolling/)
+  await expect(commitment).toHaveValue(/^[a-f0-9]{64}$/)
+  const saved = await commitment.inputValue()
+  await page.getByRole('button', { name: 'Roll dice' }).click()
+  await expect(page.getByText(/^Payout .* XLM$/)).toBeVisible()
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: 'Activity', exact: true }).click()
+  await page.getByText('Dice proof', { exact: true }).click()
+  const recorded = page.getByLabel('Commitment saved before the roll (optional)')
+  await recorded.fill('0'.repeat(64))
+  await page.getByRole('button', { name: 'Verify roll and payout' }).click()
+  await expect(page.getByText('The receipt does not match your saved commitment.')).toBeVisible()
+  await recorded.fill(saved)
+  await page.getByRole('button', { name: 'Verify roll and payout' }).click()
+  await expect(page.getByText('Saved commitment, roll and payout match.')).toBeVisible()
+})
