@@ -405,6 +405,13 @@ export function Vault({
                           : 'Failed · No credit'
                         : 'Confirmed'}
                   </small>
+                  {transfer.created && (
+                    <small>
+                      <time dateTime={transfer.created}>
+                        {new Date(transfer.created).toLocaleString()}
+                      </time>
+                    </small>
+                  )}
                 </span>
                 <span>
                   <strong>{xlm(transfer.amount)} XLM</strong>
