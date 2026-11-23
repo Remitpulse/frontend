@@ -37,6 +37,7 @@ export type Result = {
   bust?: boolean
   hash?: string
   xdr?: string
+  walletBalance?: { funded: boolean; stroops: string }
   options?: unknown
   sports?: SportsMarket
   board?: number[]

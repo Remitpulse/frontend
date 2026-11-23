@@ -18,6 +18,7 @@ export function Vault({
 }) {
   const [missingExtension, setMissingExtension] = useState(false)
   const [wallet, setWallet] = useState('')
+  const [walletBalance, setWalletBalance] = useState<Result['walletBalance']>()
   const [amount, setAmount] = useState('1')
   const [direction, setDirection] = useState<'deposit' | 'withdraw'>('deposit')
   const [eligible, setEligible] = useState(false)
@@ -45,6 +46,15 @@ export function Vault({
       throw new Error('Switch Freighter to Stellar Testnet, then try again.')
   }
 
+  async function refreshWalletBalance(address: string) {
+    try {
+      const result = await act({ action: 'wallet-balance', wallet: address })
+      setWalletBalance(result.walletBalance)
+    } catch {
+      setWalletBalance(undefined)
+    }
+  }
+
   async function connect() {
     setError('')
     setStatus('')
@@ -66,6 +76,7 @@ export function Vault({
       await requireTestnet()
       setWallet(access.address)
       setStatus('Freighter connected on Stellar Testnet.')
+      await refreshWalletBalance(access.address)
     } catch (failure) {
       setError((failure as Error).message)
     } finally {
@@ -124,6 +135,7 @@ export function Vault({
       }
       setStatus(result.message || 'Transfer confirmed.')
       setHash(result.hash || '')
+      if (wallet) await refreshWalletBalance(wallet)
     } catch (failure) {
       setStatus('')
       setError((failure as Error).message)
@@ -154,9 +166,20 @@ export function Vault({
       </div>
       <p>Testnet payments use native XLM. Demo wagers use a separate, non-withdrawable balance.</p>
       {wallet ? (
-        <p className="connected" title={wallet}>
-          Connected · {wallet.slice(0, 9)}…{wallet.slice(-6)}
-        </p>
+        <div>
+          <p className="connected" title={wallet}>
+            Stellar Testnet · {wallet.slice(0, 9)}…{wallet.slice(-6)}
+          </p>
+          {walletBalance?.funded ? (
+            <p>On-chain wallet balance: {xlm(walletBalance.stroops)} XLM</p>
+          ) : walletBalance ? (
+            <p className="notice">
+              Fund this wallet with Testnet XLM to activate it before depositing.
+            </p>
+          ) : (
+            <p>On-chain wallet balance unavailable.</p>
+          )}
+        </div>
       ) : (
         <button className="button outlined" onClick={connect} disabled={busy}>
           <Wallet size={17} /> Connect Freighter
