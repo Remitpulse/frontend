@@ -215,7 +215,7 @@ export function Sportsbook({
                     </div>
                     <small>
                       {event.id.startsWith('football-data:')
-                        ? 'Football data by football-data.org · Simulated odds'
+                        ? 'Football data by football-data.org · 90-minute result · Simulated odds'
                         : 'Simulated fixture'}
                     </small>
                     {booked && <small>Ticket placed</small>}
@@ -238,6 +238,11 @@ export function Sportsbook({
                 <p className="muted">
                   {pick.event.home} vs {pick.event.away}
                 </p>
+                {pick.event.id.startsWith('football-data:') && (
+                  <p className="muted">
+                    Settles on the score after regulation time, including stoppage time.
+                  </p>
+                )}
                 {quoteChanged && (
                   <p role="status">
                     Kickoff or odds changed. Select the outcome again to review the updated slip.
