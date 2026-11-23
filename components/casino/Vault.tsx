@@ -10,7 +10,7 @@ import {
   signTransaction,
 } from '@stellar/freighter-api'
 import type { CasinoState } from '@/lib/casino/catalog'
-import { xlm } from '@/lib/casino/money'
+import { parseXlm, STROOPS, xlm } from '@/lib/casino/money'
 import type { Result } from './Arcade'
 
 const testnet = 'Test SDF Network ; September 2015'
@@ -51,6 +51,29 @@ export function Vault({
 
   const wrongWallet = !!wallet && !!state?.linkedWallet && wallet !== state.linkedWallet
   const emptyWithdrawal = direction === 'withdraw' && state?.testnet === '0'
+  let amountError = ''
+  try {
+    const stroops = parseXlm(amount)
+    if (stroops <= 0n || stroops > 1000n * STROOPS) {
+      amountError = 'Enter an amount greater than zero and up to 1,000 XLM.'
+    } else if (
+      direction === 'withdraw' &&
+      !emptyWithdrawal &&
+      state &&
+      stroops > BigInt(state.testnet)
+    ) {
+      amountError = 'The amount exceeds your credited Testnet balance.'
+    } else if (
+      direction === 'deposit' &&
+      walletBalance?.funded &&
+      stroops >= BigInt(walletBalance.stroops)
+    ) {
+      amountError =
+        'Leave enough XLM in your wallet for the Stellar account reserve and transaction fee.'
+    }
+  } catch (error) {
+    amountError = (error as Error).message
+  }
   const pendingTransfer = direction === 'deposit' ? state?.deposit : state?.withdrawal
   const explorerHash =
     hash || (direction === 'deposit' && signed.envelope ? signed.hash : pendingTransfer?.hash)
@@ -282,11 +305,18 @@ export function Vault({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             inputMode="decimal"
+            aria-invalid={!!amountError}
+            aria-describedby={amountError ? 'wallet-amount-error' : undefined}
             disabled={busy}
           />
           <span>XLM</span>
         </div>
       </label>
+      {amountError && (
+        <p id="wallet-amount-error" className="error-text">
+          {amountError}
+        </p>
+      )}
       <label className="check">
         <input type="checkbox" checked={eligible} onChange={(e) => setEligible(e.target.checked)} />{' '}
         I am eligible to participate and am using Testnet XLM.
@@ -304,7 +334,13 @@ export function Vault({
         <button
           className="button primary"
           disabled={
-            busy || !eligible || !wallet || !state?.walletEnabled || wrongWallet || emptyWithdrawal
+            busy ||
+            !eligible ||
+            !wallet ||
+            !state?.walletEnabled ||
+            wrongWallet ||
+            emptyWithdrawal ||
+            !!amountError
           }
           onClick={() => transfer()}
         >
