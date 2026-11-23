@@ -6,6 +6,7 @@ import { xlm } from '@/lib/casino/money'
 
 export function DiceReceipt({ proof }: { proof: DiceProof }) {
   const [status, setStatus] = useState('')
+  const [recorded, setRecorded] = useState('')
   const receipt = JSON.stringify(proof, null, 2)
   return (
     <details>
@@ -14,14 +15,33 @@ export function DiceReceipt({ proof }: { proof: DiceProof }) {
         Roll {(proof.roll / 100).toFixed(2)} · Win below {proof.target} · Stake {xlm(proof.stake)}{' '}
         XLM
       </p>
+      <label>
+        Commitment saved before the roll (optional)
+        <input
+          value={recorded}
+          autoComplete="off"
+          spellCheck={false}
+          onChange={(event) => {
+            setRecorded(event.target.value)
+            setStatus('')
+          }}
+        />
+      </label>
       <button
         type="button"
         className="button outlined"
         onClick={async () => {
+          const expected = recorded.trim()
+          if (expected && expected !== proof.commitment) {
+            setStatus('The receipt does not match your saved commitment.')
+            return
+          }
           try {
             setStatus(
               (await verifyDiceProof(proof))
-                ? 'Commitment, roll and payout match.'
+                ? expected
+                  ? 'Saved commitment, roll and payout match.'
+                  : 'Receipt commitment, roll and payout match.'
                 : 'Proof did not match.',
             )
           } catch {
