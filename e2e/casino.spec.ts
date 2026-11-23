@@ -121,3 +121,50 @@ test('captures a Dice commitment and verifies the same receipt after settlement'
   await page.getByRole('button', { name: 'Verify roll and payout' }).click()
   await expect(page.getByText('Saved commitment, roll and payout match.')).toBeVisible()
 })
+
+test('requires a new selection when a football kickoff changes', async ({ page }) => {
+  const starts = Date.now() + 5 * 60_000
+  let offset = 0
+  await page.route('**/api/casino', async (route) => {
+    const request = route.request()
+    if (request.method() !== 'POST' || request.postDataJSON()?.action !== 'sports-market') {
+      await route.continue()
+      return
+    }
+    await route.fulfill({
+      json: {
+        sports: {
+          time: Date.now(),
+          footballStatus: 'current',
+          tickets: [],
+          events: [
+            {
+              id: 'football-data:1',
+              sport: 'Football',
+              league: 'Example League',
+              home: 'Home Club',
+              away: 'Away Club',
+              starts: starts + offset,
+              settles: starts + offset,
+              options: [
+                { selection: 0, label: 'Home Club', price: 235 },
+                { selection: 1, label: 'Draw', price: 320 },
+                { selection: 2, label: 'Away Club', price: 310 },
+              ],
+            },
+          ],
+        },
+      },
+    })
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Sports', exact: true }).click()
+  await page.getByRole('button', { name: /^Home Club / }).click()
+  const slip = page.getByRole('region', { name: 'Bet slip' })
+  await expect(slip.getByRole('button', { name: 'Place demo bet' })).toBeEnabled()
+  offset = 60_000
+  await expect(slip.getByText(/Kickoff or odds changed/)).toBeVisible({ timeout: 10_000 })
+  await expect(slip.getByRole('button', { name: 'Market unavailable' })).toBeDisabled()
+  await page.getByRole('button', { name: /^Home Club / }).click()
+  await expect(slip.getByRole('button', { name: 'Place demo bet' })).toBeEnabled()
+})
