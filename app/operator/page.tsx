@@ -261,7 +261,7 @@ function HorizonStatus({
         await onReconciled(data.message)
         return
       }
-      if (data.status === 'confirmed' || (data.status === 'failed' && direction === 'outbound')) {
+      if (data.status === 'confirmed' || data.status === 'failed') {
         setRecovery(data.status)
       }
       setStatus(
@@ -285,7 +285,9 @@ function HorizonStatus({
       {recovery && (
         <button className="button outlined" type="button" onClick={() => check(true)}>
           {recovery === 'failed'
-            ? 'Return failed withdrawal reserve'
+            ? direction === 'outbound'
+              ? 'Return failed withdrawal reserve'
+              : 'Close failed deposit without credit'
             : 'Reconcile confirmed transfer'}
         </button>
       )}
