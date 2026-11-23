@@ -18,7 +18,12 @@ type Report = {
     reserved: string
     liabilities: string
     grossDifference: string | null
-    balanceAudit?: { mismatchedPlayers: number; missingPlayers: number }
+    balanceAudit?: {
+      mismatchedPlayers: number
+      missingPlayers: number
+      reservationMismatches?: number
+      depositCreditMismatches?: number
+    }
   }
   pendingDeposits?: PendingTransfer[]
   footballRevisions?: {
@@ -142,19 +147,7 @@ export default function Operator() {
                 account reserves.
               </p>
               {report.reconciliation.balanceAudit && (
-                <p
-                  className={
-                    report.reconciliation.balanceAudit.mismatchedPlayers ||
-                    report.reconciliation.balanceAudit.missingPlayers
-                      ? 'error-text'
-                      : undefined
-                  }
-                >
-                  {report.reconciliation.balanceAudit.mismatchedPlayers ||
-                  report.reconciliation.balanceAudit.missingPlayers
-                    ? `Ledger discrepancies: ${report.reconciliation.balanceAudit.mismatchedPlayers} mismatched balances and ${report.reconciliation.balanceAudit.missingPlayers} missing player records.`
-                    : 'Player Testnet balances match the ledger entries.'}
-                </p>
+                <LedgerChecks audit={report.reconciliation.balanceAudit} />
               )}
             </section>
           )}
@@ -211,6 +204,33 @@ export default function Operator() {
         </>
       )}
     </main>
+  )
+}
+
+function LedgerChecks({
+  audit,
+}: {
+  audit: NonNullable<NonNullable<Report['reconciliation']>['balanceAudit']>
+}) {
+  const checks = [
+    ['Player balances', audit.mismatchedPlayers],
+    ['Missing players', audit.missingPlayers],
+    ['Deposit credits', audit.depositCreditMismatches],
+    ['Withdrawal reservations', audit.reservationMismatches],
+  ] as const
+  return (
+    <dl aria-label="Testnet ledger checks">
+      {checks
+        .filter(([, count]) => count !== undefined)
+        .map(([label, count]) => (
+          <div key={label} className={count ? 'error-text' : undefined}>
+            <dt>{label}</dt>
+            <dd>
+              {count ? `${count} discrepanc${count === 1 ? 'y' : 'ies'}` : 'No discrepancies'}
+            </dd>
+          </div>
+        ))}
+    </dl>
   )
 }
 
