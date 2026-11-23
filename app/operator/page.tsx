@@ -132,6 +132,22 @@ export default function Operator() {
           {report.reconciliation && (
             <section>
               <h2>Treasury reconciliation</h2>
+              {report.ledgerObservedAt && (
+                <p>
+                  Ledger snapshot{' '}
+                  <time dateTime={report.ledgerObservedAt}>
+                    {new Date(report.ledgerObservedAt).toLocaleString()}
+                  </time>
+                  {report.treasuryObservedAt && (
+                    <>
+                      {' · Horizon balance observed '}
+                      <time dateTime={report.treasuryObservedAt}>
+                        {new Date(report.treasuryObservedAt).toLocaleString()}
+                      </time>
+                    </>
+                  )}
+                </p>
+              )}
               <a
                 className="button outlined"
                 download="testnet-reconciliation.json"
