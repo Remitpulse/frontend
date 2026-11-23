@@ -72,7 +72,17 @@ export function Play({
           ? Number(whole + fraction.padEnd(2, '0'))
           : null
       }
-      const resolution = await act({ action, game: game.id, amount, setting, tile })
+      const wager: Record<string, unknown> = { action, game: game.id, amount, setting, tile }
+      if (action === 'play' && game.id === 'dice') {
+        const { commitment } = await act({ action: 'dice-commit' })
+        if (!commitment || !/^[a-f0-9]{64}$/.test(commitment)) {
+          throw new Error('Could not obtain a Dice commitment.')
+        }
+        const bytes = crypto.getRandomValues(new Uint8Array(32))
+        wager.commitment = commitment
+        wager.clientSeed = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+      }
+      const resolution = await act(wager)
       setSettledStake(isMines && round ? BigInt(round.stake) : stake)
       setResult(resolution)
       setAnimation((value) => value + 1)
