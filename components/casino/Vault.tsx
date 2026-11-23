@@ -128,7 +128,7 @@ export function Vault({
     }
   }
 
-  async function transfer(retry?: 'deposit' | 'withdraw') {
+  async function transferAction(retry?: 'deposit' | 'withdraw', retryHash?: string) {
     setError('')
     setHash('')
     setBusy(true)
@@ -176,16 +176,19 @@ export function Vault({
           }
         }
         setStatus('Waiting for Stellar Testnet confirmation…')
+        const serverHash = retryHash ?? (retry && !envelope ? state?.deposit?.hash : undefined)
         result = await act(
-          retry && !envelope && state?.deposit
-            ? { action: 'deposit-retry', hash: state.deposit.hash }
+          serverHash
+            ? { action: 'deposit-retry', hash: serverHash }
             : { action: 'deposit-submit', xdr: envelope },
         )
-        setSigned({ envelope: '' })
-        try {
-          window.sessionStorage.removeItem('rp-testnet-deposit')
-        } catch {
-          // Transfer confirmation is already recorded by the server.
+        if (!retryHash || retryHash === signed.hash) {
+          setSigned({ envelope: '' })
+          try {
+            window.sessionStorage.removeItem('rp-testnet-deposit')
+          } catch {
+            // Transfer confirmation is already recorded by the server.
+          }
         }
       }
       setStatus(result.message || 'Transfer confirmed.')
@@ -322,12 +325,20 @@ export function Vault({
         I am eligible to participate and am using Testnet XLM.
       </label>
       {direction === 'deposit' && (state?.deposit || signed.envelope) && (
-        <button className="button outlined" disabled={busy} onClick={() => transfer('deposit')}>
+        <button
+          className="button outlined"
+          disabled={busy}
+          onClick={() => transferAction('deposit')}
+        >
           {signed.envelope ? 'Resume signed deposit from this browser' : 'Check signed deposit'}
         </button>
       )}
       {direction === 'withdraw' && state?.withdrawal ? (
-        <button className="button primary" disabled={busy} onClick={() => transfer('withdraw')}>
+        <button
+          className="button primary"
+          disabled={busy}
+          onClick={() => transferAction('withdraw')}
+        >
           Check pending withdrawal
         </button>
       ) : (
@@ -342,7 +353,7 @@ export function Vault({
             emptyWithdrawal ||
             !!amountError
           }
-          onClick={() => transfer()}
+          onClick={() => transferAction()}
         >
           {direction === 'deposit' ? 'Deposit Testnet XLM' : 'Withdraw Testnet XLM'}
         </button>
@@ -397,6 +408,16 @@ export function Vault({
                       View transaction
                     </a>
                   </small>
+                  {transfer.status === 'pending' && transfer.direction === 'deposit' && (
+                    <button
+                      className="button outlined"
+                      type="button"
+                      disabled={busy}
+                      onClick={() => transferAction('deposit', transfer.hash)}
+                    >
+                      Check deposit
+                    </button>
+                  )}
                 </span>
               </li>
             ))}
