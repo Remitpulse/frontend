@@ -248,7 +248,7 @@ function TransferQueue({
   transfers?: PendingTransfer[]
 }) {
   return (
-    <section>
+    <section className="operator-transfer-queue">
       <h2>{title}</h2>
       {!transfers ? (
         <p className="empty">This report does not include this transfer queue.</p>

@@ -799,6 +799,40 @@ dialog::backdrop {
 .operator form label {
   width: min(100%, 360px);
 }
+.operator-transfer-queue .history li > *,
+.wallet-transfers .history li > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.operator-transfer-queue .history li {
+  align-items: start;
+}
+.operator-transfer-queue .history li > span {
+  justify-items: end;
+}
+.operator-transfer-queue .history button,
+.wallet-transfers .history button {
+  white-space: normal;
+}
+.vault .notice code {
+  overflow-wrap: anywhere;
+}
+.wallet-transfers {
+  margin-top: 16px;
+}
+@media (max-width: 550px) {
+  .operator-transfer-queue .history li,
+  .wallet-transfers .history li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
+  .operator-transfer-queue .history li > span,
+  .wallet-transfers .history li > span:last-child {
+    justify-items: start;
+    text-align: left;
+  }
+}
 @media (max-width: 1040px) {
   :root {
     --rail-width: 156px;
