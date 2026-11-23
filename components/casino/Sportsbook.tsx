@@ -137,6 +137,8 @@ export function Sportsbook({
   }
 
   const events = market?.events.filter((event) => filter === 'All sports' || event.sport === filter)
+  const footballUnavailable =
+    (filter === 'All sports' || filter === 'Football') && market?.footballStatus === 'unavailable'
   return (
     <section className="sportsbook" aria-labelledby="sports-title">
       <header className="sports-hero">
@@ -173,13 +175,17 @@ export function Sportsbook({
               Loading fixtures…
             </p>
           )}
-          {(filter === 'All sports' || filter === 'Football') &&
-            market?.footballStatus === 'unavailable' && (
-              <p className="notice" role="status">
-                The football feed is unavailable. New football tickets are paused.
-              </p>
-            )}
-          {events && (
+          {footballUnavailable && (
+            <p className="notice" role="status">
+              The football feed is unavailable. New football tickets are paused.
+            </p>
+          )}
+          {events?.length === 0 && !footballUnavailable && !refreshIssue && (
+            <p className="empty" role="status">
+              No open fixtures match this filter.
+            </p>
+          )}
+          {!!events?.length && (
             <ul className="fixture-list">
               {events.map((event) => {
                 const booked = market?.tickets.some((ticket) => ticket.event === event.id)
