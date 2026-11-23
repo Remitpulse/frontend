@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { ArrowDownToLine, ArrowUpFromLine, Wallet } from 'lucide-react'
-import { getNetwork, requestAccess, signTransaction } from '@stellar/freighter-api'
+import { getNetwork, isConnected, requestAccess, signTransaction } from '@stellar/freighter-api'
 import type { CasinoState } from '@/lib/casino/catalog'
 import { xlm } from '@/lib/casino/money'
 import type { Result } from './Arcade'
@@ -16,6 +16,7 @@ export function Vault({
   state?: CasinoState
   act: (input: Record<string, unknown>) => Promise<Result>
 }) {
+  const [missingExtension, setMissingExtension] = useState(false)
   const [wallet, setWallet] = useState('')
   const [amount, setAmount] = useState('1')
   const [direction, setDirection] = useState<'deposit' | 'withdraw'>('deposit')
@@ -26,16 +27,35 @@ export function Vault({
   const [hash, setHash] = useState('')
   const [signed, setSigned] = useState(() => sessionStorage.getItem('rp-testnet-deposit') || '')
 
+  async function requireTestnet() {
+    const network = await getNetwork()
+    if (network.error)
+      throw new Error(
+        'Freighter could not read the active network. Unlock the extension and try again.',
+      )
+    if (network.networkPassphrase !== testnet)
+      throw new Error('Switch Freighter to Stellar Testnet, then try again.')
+  }
+
   async function connect() {
     setError('')
+    setStatus('')
+    setMissingExtension(false)
     setBusy(true)
     try {
+      const detection = await isConnected()
+      if (!detection.isConnected) {
+        setMissingExtension(true)
+        throw new Error(
+          'Freighter was not detected in this browser. Open this preview in the browser profile where the extension is installed.',
+        )
+      }
       const access = await requestAccess()
       if (access.error || !access.address)
-        throw new Error('Install or unlock Freighter and approve access.')
-      const network = await getNetwork()
-      if (network.error || network.networkPassphrase !== testnet)
-        throw new Error('Switch Freighter to Stellar Testnet.')
+        throw new Error(
+          'Freighter did not share an address. Unlock the extension, then approve this site in the wallet popup.',
+        )
+      await requireTestnet()
       setWallet(access.address)
       setStatus('Freighter connected on Stellar Testnet.')
     } catch (failure) {
@@ -50,6 +70,7 @@ export function Vault({
     setHash('')
     setBusy(true)
     try {
+      if (!retry) await requireTestnet()
       let result: Result
       if (retry === 'withdraw' || (!retry && direction === 'withdraw')) {
         setStatus('Waiting for Stellar Testnet confirmation…')
@@ -64,9 +85,7 @@ export function Vault({
         if (!retry) {
           setStatus('Preparing native XLM payment…')
           const intent = await act({ action: 'deposit-prepare', amount, wallet, eligible })
-          const network = await getNetwork()
-          if (network.networkPassphrase !== testnet || !intent.xdr)
-            throw new Error('Switch Freighter to Stellar Testnet.')
+          if (!intent.xdr) throw new Error('The server did not return a Testnet payment to sign.')
           setStatus('Approve the Testnet payment in Freighter.')
           const approval = await signTransaction(intent.xdr, {
             networkPassphrase: testnet,
@@ -126,6 +145,31 @@ export function Vault({
         <button className="button outlined" onClick={connect} disabled={busy}>
           <Wallet size={17} /> Connect Freighter
         </button>
+      )}
+      {missingExtension && (
+        <div className="notice">
+          <p>Use a desktop browser with Freighter (now Varial) enabled.</p>
+          <button
+            className="button outlined"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(window.location.origin)
+                setStatus('Preview link copied.')
+              } catch {
+                setStatus('Copy the preview URL from your browser address bar.')
+              }
+            }}
+          >
+            Copy preview link
+          </button>
+          <a
+            href="https://github.com/stellar/freighter-developer-docs/blob/main/extension/installation.md"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Wallet setup
+          </a>
+        </div>
       )}
       {!state?.walletEnabled && (
         <p className="notice">Testnet transfers require a configured treasury.</p>
