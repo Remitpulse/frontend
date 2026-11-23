@@ -81,18 +81,26 @@ export function DiceTrack({ target, roll }: { target: number; roll?: number }) {
 }
 
 export function CoinStage({ face, round }: { face?: string; round: number }) {
+  const reducedMotion = useReducedMotion()
   return (
-    <motion.div
-      key={round}
-      className="coin-stage"
-      initial={round ? { rotateY: 0, scale: 0.8 } : false}
-      animate={{ rotateY: round ? 720 : 0, scale: 1 }}
-      transition={{ duration: 0.65 }}
-      aria-hidden="true"
-    >
-      <span>{face === 'Tails' ? '☾' : '✦'}</span>
-      <small>{face ?? 'XLM'}</small>
-    </motion.div>
+    <div className="coin-table" aria-hidden="true">
+      <motion.div
+        key={round}
+        className="coin-stage coin-two-sided"
+        initial={round && !reducedMotion ? { rotateY: 0, scale: 0.87 } : false}
+        animate={{ rotateY: round ? (face === 'Tails' ? 900 : 720) : 0, scale: 1 }}
+        transition={{ duration: reducedMotion ? 0 : 0.78 }}
+      >
+        <div className="coin-face">
+          <span>✦</span>
+          <small>Heads</small>
+        </div>
+        <div className="coin-face coin-reverse">
+          <span>☾</span>
+          <small>Tails</small>
+        </div>
+      </motion.div>
+    </div>
   )
 }
 

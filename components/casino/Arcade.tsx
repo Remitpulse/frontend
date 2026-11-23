@@ -451,6 +451,7 @@ export function Arcade() {
       </main>
       <dialog
         ref={dialog}
+        className={game ? 'game-dialog' : undefined}
         aria-label={game?.title || (panel === 'wallet' ? 'Stellar wallet' : 'Responsible play')}
         onClose={close}
         onClick={(e) => {

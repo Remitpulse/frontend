@@ -1,18 +1,36 @@
 # RemitPulse Stellar Arcade
 
-This repo contains the Next.js and TypeScript frontend for the RemitPulse Testnet casino. Dice, Mines, Plinko, Limbo, Coin Flip, European Roulette, Keno, Wheel, and Baccarat use simulated XLM. Filter the lobby by category, save favorite games per browser, and return to games from your ledger history. Freighter connects to native XLM payments on Stellar Testnet. The activity and operator views use XLM throughout.
+The Next.js frontend serves nine casino games and a simulated sportsbook. Every stake and return is shown in XLM. The wallet connects to Stellar Testnet through Freighter and displays its balance separately from demo credits.
 
-## Local development
+## Start locally
 
-1. Run the sibling [casino backend](https://github.com/Remitpulse/backend) with Node.js 24 at `http://127.0.0.1:4010`.
-2. In this checkout, run `npm ci` and `npm run dev`. Visit `http://localhost:3000` so the default passkey origin matches.
-3. Optionally configure a funded Stellar Testnet treasury in the backend. Use Freighter on Stellar Testnet and fund a test wallet through [Stellar Lab](https://lab.stellar.org/).
-4. Load `/operator` with the token configured in the backend.
+Use Node.js 24. Start the sibling [backend](https://github.com/Remitpulse/backend/tree/stellar-casino-milestone) on port 4010, then run:
 
-The frontend uses a same-origin API relay. Set `CASINO_BACKEND_URL` if the backend is on another private origin. For a production build, run `npm run build` and `npm start`. This milestone permits simulated wagers and Testnet payments only. See [visual architecture](docs/casino-design.md).
+```sh
+npm ci
+npm run dev
+```
 
-## Sportsbook and game controls
+Open `http://localhost:3000`. Set `CASINO_BACKEND_URL` for a different backend address. Set `CASINO_PUBLIC_ORIGIN` on both services to the exact public HTTPS origin when deploying behind a proxy. Use the same origin for passkey enrollment and sign-in.
 
-Open **Sports** in the arcade navigation. The demo sportsbook publishes fictional football, basketball and tennis fixtures with server-quoted decimal odds. It records one single-selection ticket per fixture, closes the market at kickoff and settles tickets once the simulated match ends. The shared ledger uses simulated XLM. Native Stellar Testnet deposits and withdrawals remain available through the separate wallet balance.
+## Games
 
-Mines supports 1–24 mines. Dice shows its roll against the chosen cutoff. Roulette and Wheel animate the actual server-settled pocket or segment.
+| Game | How to play |
+| --- | --- |
+| Mines | Set 1–24 mines, reveal gems and cash out. The table shows the current return and the next gem’s potential return. |
+| Dice | Set a threshold and see the server’s roll on the track. |
+| Plinko | Watch the eight-step drop land in the server-selected multiplier slot. |
+| Limbo | Set a target and compare it with the final multiplier. |
+| Coin Flip | Choose heads or tails and watch the settled face turn into view. |
+| European Roulette | Choose red, black or zero and watch the wheel settle on the actual pocket. |
+| Keno | Choose five numbers and watch ten drawn numbers appear in order. |
+| Wheel | Spin a twelve-segment wheel with six blank segments. |
+| Baccarat | Back Player, Banker or Tie and see both hands dealt from the server result. |
+
+Game tables show wager presets, exact XLM returns and the most recent settled outcomes available in your activity ledger. The sportsbook offers fictional football, basketball and tennis fixtures with quoted odds and a single-selection ticket per fixture.
+
+## Verify and deploy
+
+Run `npm run lint`, `npm run typecheck` and `npm run build`. For Playwright, start the backend, build the frontend, run `npx playwright install chromium`, then run `npm run test:e2e`. The [backend deployment instructions](https://github.com/Remitpulse/backend/tree/stellar-casino-milestone#deploy-both-services) cover the two-service Compose stack.
+
+The deployed milestone uses simulated wagers and Stellar Testnet wallet payments. The operator can enable native Testnet transfers by configuring a funded Testnet treasury on the backend. See the [visual architecture](docs/casino-design.md).

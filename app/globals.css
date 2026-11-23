@@ -1648,3 +1648,393 @@ dialog::backdrop {
     url('/casino/stadium.webp') center 59% / cover no-repeat,
     #14172b;
 }
+
+.game-dialog {
+  width: min(1130px, calc(100% - 28px));
+  max-height: calc(100dvh - 24px);
+  background: #12111c;
+}
+.game-dialog .dialog-inner {
+  padding: clamp(13px, 2.6vw, 30px);
+}
+.play-header {
+  margin-bottom: 16px;
+}
+.play-header h2 {
+  margin-bottom: 0;
+}
+.game-dialog .play-layout {
+  grid-template-columns: minmax(250px, 0.72fr) minmax(0, 1.65fr);
+  gap: clamp(12px, 2vw, 22px);
+}
+.game-dialog .play-controls,
+.game-dialog .play-stage {
+  min-width: 0;
+  background-color: #191725;
+  border: 1px solid #3d344e;
+  border-radius: 16px;
+  padding: clamp(12px, 2vw, 22px);
+}
+.game-dialog .play-controls {
+  align-self: stretch;
+  gap: 14px;
+  background: linear-gradient(145deg, #211c32, #14131e);
+}
+.game-dialog .play-controls > .primary {
+  min-height: 52px;
+  font-weight: 750;
+  border-color: var(--game-color);
+  background: var(--game-color);
+  color: #181220;
+}
+.game-dialog .play-controls > .primary:hover:enabled {
+  background: color-mix(in srgb, var(--game-color), white 24%);
+}
+.wager-field,
+.mine-risk {
+  display: grid;
+  gap: 8px;
+}
+.wager-amount {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+  padding: 5px;
+  background: #110e1d;
+  border: 1px solid #514164;
+  border-radius: 10px;
+}
+.wager-amount:focus-within {
+  border-color: var(--game-color);
+}
+.wager-amount input {
+  width: 100%;
+  min-width: 0;
+  text-align: right;
+  font-weight: 760;
+  color: #fff;
+  font-size: 1.04rem;
+  padding-inline: 4px;
+}
+.wager-currency {
+  background: #29203f;
+  color: #cfbaff;
+  border-radius: 6px;
+  padding: 6px;
+  font-size: 0.74rem;
+  font-weight: 770;
+}
+.wager-amount button,
+.wager-shortcuts button {
+  background: #2b243a;
+  border: 1px solid #453752;
+  color: #ece3f7;
+  border-radius: 7px;
+  min-height: 36px;
+}
+.wager-amount button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  flex-shrink: 0;
+}
+.wager-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.wager-shortcuts button {
+  flex: 1;
+  min-width: 30px;
+  padding: 4px;
+  font-size: 0.82rem;
+}
+.wager-shortcuts button:hover:enabled,
+.wager-shortcuts button[aria-pressed='true'] {
+  color: var(--game-color);
+  border-color: var(--game-color);
+}
+.game-dialog .play-stage {
+  width: 100%;
+  justify-content: start;
+  align-items: stretch;
+  gap: 13px;
+  background: radial-gradient(
+    ellipse at 50% 40%,
+    color-mix(in srgb, var(--game-color) 15%, #171326),
+    #100e1c 76%
+  );
+}
+.stage-status,
+.round-history,
+.mine-returns {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.stage-status {
+  justify-content: space-between;
+  font-size: 0.77rem;
+  color: var(--muted);
+  padding-bottom: 9px;
+  border-bottom: 1px solid #ffffff19;
+}
+.stage-status span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--game-color);
+}
+.stage-board {
+  display: grid;
+  place-items: center;
+  min-height: clamp(205px, 33vh, 380px);
+  min-width: 0;
+}
+.mine-returns {
+  justify-content: center;
+}
+.mine-returns span {
+  background: #201a30;
+  border: 1px solid #463953;
+  border-radius: 8px;
+  padding: 5px 9px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.mine-returns strong {
+  color: var(--game-color);
+}
+.game-dialog .tiles {
+  width: min(100%, 390px);
+  gap: clamp(4px, 0.65vw, 8px);
+}
+.game-dialog .tiles button {
+  aspect-ratio: 1;
+  min-height: 0;
+  border-radius: 10px;
+  background: linear-gradient(155deg, #2b3648, #1a2332);
+  color: #9db0cb;
+  border: 1px solid #47556b;
+  box-shadow:
+    inset 0 1px #ffffff16,
+    0 3px 0 #10131e;
+  font-size: 1.36rem;
+}
+.game-dialog .tiles button:not(.gem):not(.mine):not(.unpicked):hover:enabled {
+  transform: translateY(-2px);
+  background: #344b57;
+  border-color: #81e5ce;
+}
+.game-dialog .tiles button.gem,
+.game-dialog .tiles button.unpicked {
+  background: radial-gradient(ellipse at 40% 20%, #306354, #203b42 72%);
+  border-color: #479b7e;
+  opacity: 1;
+  color: #b2ffe3;
+}
+.game-dialog .tiles button.mine {
+  background: radial-gradient(ellipse at 45% 20%, #653846, #382332 74%);
+  border-color: #9a5770;
+  opacity: 1;
+}
+.game-dialog .tiles button.unpicked {
+  opacity: 0.55;
+}
+.tile-icon {
+  display: grid;
+  place-items: center;
+  width: 79%;
+  height: 79%;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.round-receipt {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 13px;
+  background: #252032;
+  border: 1px solid #4c3c59;
+  color: #e8dff2;
+  border-radius: 11px;
+}
+.round-receipt[data-profit='true'] {
+  background: linear-gradient(100deg, #162e30, #1a2430);
+  border-color: #4c8b7b;
+  color: #b2ffe1;
+}
+.round-receipt div {
+  display: grid;
+  margin-right: auto;
+}
+.round-receipt strong {
+  line-height: 1.2;
+}
+.round-receipt b {
+  overflow-wrap: anywhere;
+}
+.round-history {
+  border-top: 1px solid #ffffff19;
+  padding-top: 10px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.history-pill {
+  padding: 4px 7px;
+  border-radius: 7px;
+  background: #2a2037;
+  color: #e9d9ee;
+}
+.history-pill[data-paid='true'] {
+  background: #203833;
+  color: #b1f3dc;
+}
+.game-dialog .round-wheel {
+  width: min(280px, 100%);
+}
+.game-dialog .dice-track {
+  width: min(92%, 460px);
+}
+.game-dialog .coin-stage {
+  width: min(170px, 60vw);
+  height: auto;
+  aspect-ratio: 1;
+}
+.game-dialog .keno-board {
+  width: min(100%, 430px);
+}
+.keno-draw {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin: 8px 0;
+}
+.keno-draw span {
+  display: grid;
+  place-items: center;
+  width: 29px;
+  height: 29px;
+  color: #d2e8f7;
+  background: #263b55;
+  font-weight: 740;
+  font-size: 0.82rem;
+  border: 1px solid #55708b;
+  border-radius: 50%;
+}
+.keno-draw span[data-match='true'] {
+  background: #ffdc8b;
+  color: #32210c;
+  border-color: #ffeab3;
+}
+.game-dialog .baccarat-hands {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 0;
+  width: min(100%, 450px);
+}
+.game-dialog .baccarat-hands > div {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #644561;
+  border-radius: 9px;
+  background: #231625;
+}
+.game-dialog .baccarat-hands > div[data-winner='true'] {
+  border-color: #ffcce6;
+}
+.game-dialog .baccarat-hands span {
+  min-width: 0;
+  width: min(30%, 52px);
+  height: auto;
+  aspect-ratio: 2/3;
+  text-align: center;
+}
+.game-dialog .baccarat-hands span i {
+  font-style: normal;
+}
+.game-dialog .baccarat-hands span[data-back='true'] {
+  color: #ffd5eb;
+  background: repeating-linear-gradient(45deg, #692d5c 0 4px, #482449 4px 8px);
+}
+.game-dialog .plinko {
+  width: min(95%, 370px);
+}
+.peg-field {
+  position: relative;
+  height: clamp(145px, 26vh, 260px);
+}
+.peg-field .peg-row {
+  display: contents;
+}
+.peg-field .peg-row i,
+.peg-field .drop {
+  position: absolute;
+  margin: 0;
+  transform: translate(-50%, -50%);
+}
+.peg-field .peg-row i {
+  box-shadow: 0 1px 4px #e5b26560;
+}
+.peg-field .drop {
+  translate: -50% -50%;
+  transform: none;
+  background: #ffe897;
+}
+@media (max-width: 710px) {
+  .game-dialog .play-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .game-dialog .play-stage {
+    grid-row: auto;
+  }
+  .stage-board {
+    min-height: 165px;
+  }
+}
+.tiles button.gem .tile-icon,
+.tiles button.unpicked .tile-icon {
+  background-image: url('/casino/mines-gem.webp');
+}
+.tiles button.mine .tile-icon {
+  background-image: url('/casino/mines-mine.webp');
+}
+.tiles button.gem .tile-icon,
+.tiles button.unpicked .tile-icon,
+.tiles button.mine .tile-icon {
+  color: transparent;
+}
+.tiles button.gem .tile-icon svg,
+.tiles button.unpicked .tile-icon svg {
+  visibility: hidden;
+}
+.coin-table {
+  perspective: 560px;
+}
+.coin-stage.coin-two-sided {
+  position: relative;
+  transform-style: preserve-3d;
+  display: block;
+}
+.coin-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 3px;
+  border-radius: 50%;
+  text-align: center;
+  backface-visibility: hidden;
+}
+.coin-reverse {
+  transform: rotateY(180deg);
+  background: radial-gradient(circle, #d4b4ff, #79539f 70%);
+  color: #20182e;
+}
