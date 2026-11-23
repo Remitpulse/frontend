@@ -47,3 +47,17 @@ transfers**, **Check deposit** checks the selected transaction by its hash.
 For a reserved withdrawal, **Check pending withdrawal** checks the hash shown
 in the wallet. A definitive failed withdrawal returns its reserve and remains
 visible in history.
+
+### Verify a Dice round
+
+Before a wager, expand **Pre-wager Dice proof** and save the commitment for
+the next roll. The table can verify the receipt against the commitment it
+received before play. Later, open **Activity → Dice proof** to compare a
+saved commitment or download the receipt for offline verification.
+
+### Review an expired transfer
+
+If Horizon has no receipt and the signed envelope has expired, the wallet
+shows that the transaction needs operator review. Use the transaction hash
+from the wallet or Activity when investigating. A reserved withdrawal
+remains in the pending queue until there is a recorded outcome.
