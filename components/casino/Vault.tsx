@@ -149,6 +149,7 @@ export function Vault({
         setStatus('Waiting for Stellar Testnet confirmation…')
         result = await act({
           action: retry ? 'withdraw-retry' : 'withdraw',
+          hash: retry === 'withdraw' ? state?.withdrawal?.hash : undefined,
           amount,
           wallet,
           eligible,
