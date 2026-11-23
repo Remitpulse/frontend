@@ -37,7 +37,8 @@ export function Vault({
   })
 
   const pendingTransfer = direction === 'deposit' ? state?.deposit : state?.withdrawal
-  const explorerHash = hash || pendingTransfer?.hash
+  const explorerHash =
+    hash || (direction === 'deposit' && signed ? undefined : pendingTransfer?.hash)
 
   async function requireTestnet() {
     const network = await getNetwork()
@@ -125,7 +126,7 @@ export function Vault({
         }
         setStatus('Waiting for Stellar Testnet confirmation…')
         result = await act(
-          retry && state?.deposit
+          retry && !envelope && state?.deposit
             ? { action: 'deposit-retry', hash: state.deposit.hash }
             : { action: 'deposit-submit', xdr: envelope },
         )
@@ -250,7 +251,7 @@ export function Vault({
       </label>
       {direction === 'deposit' && (state?.deposit || signed) && (
         <button className="button outlined" disabled={busy} onClick={() => transfer('deposit')}>
-          Check signed deposit
+          {signed ? 'Resume signed deposit from this browser' : 'Check signed deposit'}
         </button>
       )}
       {direction === 'withdraw' && state?.withdrawal ? (
@@ -272,7 +273,7 @@ export function Vault({
           {error}
         </p>
       )}
-      {pendingTransfer && !hash && (
+      {pendingTransfer && !hash && !(direction === 'deposit' && signed) && (
         <p role="status">
           {direction === 'deposit' ? 'Signed deposit' : 'Reserved withdrawal'} awaiting confirmation
           · {xlm(pendingTransfer.amount)} XLM
