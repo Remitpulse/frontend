@@ -49,6 +49,8 @@ export function Vault({
     }
   })
 
+  const wrongWallet = !!wallet && !!state?.linkedWallet && wallet !== state.linkedWallet
+  const emptyWithdrawal = direction === 'withdraw' && state?.testnet === '0'
   const pendingTransfer = direction === 'deposit' ? state?.deposit : state?.withdrawal
   const explorerHash =
     hash || (direction === 'deposit' && signed.envelope ? signed.hash : pendingTransfer?.hash)
@@ -262,6 +264,17 @@ export function Vault({
           <ArrowUpFromLine size={16} /> Withdraw
         </button>
       </div>
+      {wrongWallet && (
+        <p className="notice" role="status">
+          This session is linked to <code>{state?.linkedWallet}</code>. Select that account in
+          Freighter and refresh.
+        </p>
+      )}
+      {emptyWithdrawal && !state?.withdrawal && (
+        <p className="notice" role="status">
+          A confirmed Testnet deposit is required before withdrawing.
+        </p>
+      )}
       <label>
         Amount
         <div className="amount-input">
@@ -290,7 +303,9 @@ export function Vault({
       ) : (
         <button
           className="button primary"
-          disabled={busy || !eligible || !wallet || !state?.walletEnabled}
+          disabled={
+            busy || !eligible || !wallet || !state?.walletEnabled || wrongWallet || emptyWithdrawal
+          }
           onClick={() => transfer()}
         >
           {direction === 'deposit' ? 'Deposit Testnet XLM' : 'Withdraw Testnet XLM'}
