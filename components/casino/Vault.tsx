@@ -36,6 +36,9 @@ export function Vault({
     }
   })
 
+  const pendingTransfer = direction === 'deposit' ? state?.deposit : state?.withdrawal
+  const explorerHash = hash || pendingTransfer?.hash
+
   async function requireTestnet() {
     const network = await getNetwork()
     if (network.error)
@@ -269,9 +272,15 @@ export function Vault({
           {error}
         </p>
       )}
-      {hash && (
+      {pendingTransfer && !hash && (
+        <p role="status">
+          {direction === 'deposit' ? 'Signed deposit' : 'Reserved withdrawal'} awaiting confirmation
+          · {xlm(pendingTransfer.amount)} XLM
+        </p>
+      )}
+      {explorerHash && (
         <a
-          href={'https://stellar.expert/explorer/testnet/tx/' + hash}
+          href={'https://stellar.expert/explorer/testnet/tx/' + explorerHash}
           target="_blank"
           rel="noreferrer"
         >
