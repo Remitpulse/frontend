@@ -71,6 +71,13 @@ export type Round = {
   payout: string
   nextPayout: string
 }
+export type WalletTransfer = {
+  hash: string
+  amount: string
+  direction: 'deposit' | 'withdrawal'
+  status: 'confirmed' | 'pending' | 'failed'
+  created: string
+}
 export type CasinoState = {
   demo: string
   testnet: string
@@ -79,6 +86,7 @@ export type CasinoState = {
   round: Round | null
   paused: boolean
   walletEnabled: boolean
+  transfers?: WalletTransfer[]
   deposit: { hash: string; amount: string } | null
   withdrawal: { hash: string; amount: string } | null
 }

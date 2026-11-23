@@ -296,6 +296,39 @@ export function Vault({
           View in Stellar explorer
         </a>
       )}
+      {!!state?.transfers?.length && (
+        <details className="wallet-transfers">
+          <summary>Recent Testnet transfers</summary>
+          <ul className="history">
+            {state.transfers.map((transfer) => (
+              <li key={transfer.hash}>
+                <span>
+                  <strong>{transfer.direction === 'deposit' ? 'Deposit' : 'Withdrawal'}</strong>
+                  <small>
+                    {transfer.status === 'pending'
+                      ? 'Awaiting confirmation'
+                      : transfer.status === 'failed'
+                        ? 'Failed · Reserve returned'
+                        : 'Confirmed'}
+                  </small>
+                </span>
+                <span>
+                  <strong>{xlm(transfer.amount)} XLM</strong>
+                  <small>
+                    <a
+                      href={'https://stellar.expert/explorer/testnet/tx/' + transfer.hash}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      View transaction
+                    </a>
+                  </small>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </section>
   )
 }
