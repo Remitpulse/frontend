@@ -2,7 +2,13 @@
 
 import { useState } from 'react'
 import { ArrowDownToLine, ArrowUpFromLine, Wallet } from 'lucide-react'
-import { getNetwork, isConnected, requestAccess, signTransaction } from '@stellar/freighter-api'
+import {
+  getAddress,
+  getNetwork,
+  isConnected,
+  requestAccess,
+  signTransaction,
+} from '@stellar/freighter-api'
 import type { CasinoState } from '@/lib/casino/catalog'
 import { xlm } from '@/lib/casino/money'
 import type { Result } from './Arcade'
@@ -70,6 +76,8 @@ export function Vault({
     setError('')
     setStatus('')
     setMissingExtension(false)
+    setWallet('')
+    setWalletBalance(undefined)
     setBusy(true)
     try {
       const detection = await isConnected()
@@ -100,7 +108,17 @@ export function Vault({
     setHash('')
     setBusy(true)
     try {
-      if (!retry) await requireTestnet()
+      if (!retry) {
+        await requireTestnet()
+        const active = await getAddress()
+        if (active.error || active.address !== wallet) {
+          setWallet('')
+          setWalletBalance(undefined)
+          throw new Error(
+            'The active Freighter wallet changed or is locked. Connect it again before continuing.',
+          )
+        }
+      }
       let result: Result
       if (retry === 'withdraw' || (!retry && direction === 'withdraw')) {
         setStatus('Waiting for Stellar Testnet confirmation…')
@@ -191,6 +209,9 @@ export function Vault({
           ) : (
             <p>On-chain wallet balance unavailable.</p>
           )}
+          <button type="button" className="button outlined" onClick={connect} disabled={busy}>
+            Refresh wallet connection
+          </button>
         </div>
       ) : (
         <button className="button outlined" onClick={connect} disabled={busy}>
