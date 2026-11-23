@@ -78,6 +78,14 @@ export function Vault({
   const explorerHash =
     hash || (direction === 'deposit' && signed.envelope ? signed.hash : pendingTransfer?.hash)
 
+  function selectDirection(next: 'deposit' | 'withdraw') {
+    if (next === direction) return
+    setDirection(next)
+    setStatus('')
+    setError('')
+    setHash('')
+  }
+
   async function requireTestnet() {
     const network = await getNetwork()
     if (network.error)
@@ -278,14 +286,14 @@ export function Vault({
       <div className="segmented">
         <button
           aria-pressed={direction === 'deposit'}
-          onClick={() => setDirection('deposit')}
+          onClick={() => selectDirection('deposit')}
           disabled={busy}
         >
           <ArrowDownToLine size={16} /> Deposit
         </button>
         <button
           aria-pressed={direction === 'withdraw'}
-          onClick={() => setDirection('withdraw')}
+          onClick={() => selectDirection('withdraw')}
           disabled={busy}
         >
           <ArrowUpFromLine size={16} /> Withdraw
