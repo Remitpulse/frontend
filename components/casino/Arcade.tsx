@@ -21,6 +21,7 @@ import {
   X,
 } from 'lucide-react'
 import { gameGroups, games, type CasinoState, type Game } from '@/lib/casino/catalog'
+import type { DiceProof } from '@/lib/casino/dice-proof'
 import { xlm } from '@/lib/casino/money'
 import { Passkeys } from './Passkeys'
 import { Play } from './Play'
@@ -39,6 +40,7 @@ export type Result = {
   hash?: string
   xdr?: string
   commitment?: string
+  proof?: DiceProof
   walletBalance?: { funded: boolean; stroops: string }
   options?: unknown
   sports?: SportsMarket

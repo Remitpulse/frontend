@@ -6,6 +6,7 @@ import { CircleHelp, Gem, Orbit, CircleDot, Check, X as CloseIcon } from 'lucide
 import { type CasinoState, type Game } from '@/lib/casino/catalog'
 import { parseXlm, STROOPS, xlm } from '@/lib/casino/money'
 import type { Result } from './Arcade'
+import { DiceReceipt } from './DiceReceipt'
 import { Wager } from './Wager'
 import { CoinStage, DiceTrack, LimboStage, Spinner } from './GameStage'
 
@@ -39,6 +40,7 @@ export function Play({
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [animation, setAnimation] = useState(0)
+  const [settledCommitment, setSettledCommitment] = useState<string>()
   const [diceCommitment, setDiceCommitment] = useState<string>()
   const round = state?.round
   const isMines = game.id === 'mines'
@@ -103,6 +105,7 @@ export function Play({
       }
       const resolution = await act(wager)
       setSettledStake(isMines && round ? BigInt(round.stake) : stake)
+      setSettledCommitment(typeof wager.commitment === 'string' ? wager.commitment : undefined)
       setResult(resolution)
       setAnimation((value) => value + 1)
     } catch (failure) {
@@ -424,6 +427,13 @@ export function Play({
               </span>
             )}
           </div>
+          {result?.proof && (
+            <DiceReceipt
+              key={result.proof.commitment}
+              proof={result.proof}
+              priorCommitment={settledCommitment}
+            />
+          )}
           <div className="round-history" aria-label="Recent outcomes">
             <span>Recent rounds</span>
             {history.length ? (

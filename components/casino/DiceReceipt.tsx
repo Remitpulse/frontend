@@ -4,9 +4,15 @@ import { useState } from 'react'
 import { verifyDiceProof, type DiceProof } from '@/lib/casino/dice-proof'
 import { xlm } from '@/lib/casino/money'
 
-export function DiceReceipt({ proof }: { proof: DiceProof }) {
+export function DiceReceipt({
+  proof,
+  priorCommitment,
+}: {
+  proof: DiceProof
+  priorCommitment?: string
+}) {
   const [status, setStatus] = useState('')
-  const [recorded, setRecorded] = useState('')
+  const [recorded, setRecorded] = useState(priorCommitment ?? '')
   const receipt = JSON.stringify(proof, null, 2)
   return (
     <details>
