@@ -16,6 +16,13 @@ type Report = {
   pending: PendingTransfer[]
   reconciliation?: { reserved: string; liabilities: string; grossDifference: string | null }
   pendingDeposits?: PendingTransfer[]
+  footballRevisions?: {
+    event: string
+    originalScore: string
+    revisedScore: string
+    observed: number
+    settledTickets: number
+  }[]
 }
 
 export default function Operator() {
@@ -157,6 +164,30 @@ export default function Operator() {
             onReconciled={onReconciled}
             transfers={report.pending}
           />
+          {!!report.footballRevisions?.length && (
+            <section>
+              <h2>Football score revisions</h2>
+              <ul className="history">
+                {report.footballRevisions.map((revision) => (
+                  <li key={revision.event}>
+                    <span>
+                      <strong>Match {revision.event.replace('football-data:', '')}</strong>
+                      <small>{new Date(revision.observed).toLocaleString()}</small>
+                    </span>
+                    <span>
+                      <strong>
+                        {revision.originalScore} → {revision.revisedScore}
+                      </strong>
+                      <small>
+                        {revision.settledTickets} settled ticket
+                        {revision.settledTickets === 1 ? '' : 's'}
+                      </small>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </>
       )}
     </main>
