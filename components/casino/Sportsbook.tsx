@@ -29,7 +29,12 @@ type TicketRow = {
   state: 'Open' | 'Won' | 'Lost' | 'Void'
   settles: number
 }
-export type SportsMarket = { events: Event[]; tickets: TicketRow[]; time: number }
+export type SportsMarket = {
+  events: Event[]
+  tickets: TicketRow[]
+  time: number
+  footballStatus?: 'simulated' | 'unavailable' | 'current'
+}
 const filters = ['All sports', 'Football', 'Basketball', 'Tennis']
 const odds = (value: number) => (value / 100).toFixed(2)
 
@@ -146,6 +151,12 @@ export function Sportsbook({
               Loading fixtures…
             </p>
           )}
+          {(filter === 'All sports' || filter === 'Football') &&
+            market?.footballStatus === 'unavailable' && (
+              <p className="notice" role="status">
+                The football feed is unavailable. New football tickets are paused.
+              </p>
+            )}
           {events && (
             <ul className="fixture-list">
               {events.map((event) => {
