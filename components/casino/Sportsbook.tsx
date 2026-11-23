@@ -26,6 +26,7 @@ type TicketRow = {
   payout: string
   price: number
   score: string | null
+  revisedScore?: string | null
   state: 'Open' | 'Won' | 'Lost' | 'Void'
   settles: number
 }
@@ -302,6 +303,12 @@ export function Sportsbook({
                       <span>{xlm(ticket.stake)} XLM stake</span>
                       <span>{ticket.score ?? 'Awaiting result'}</span>
                     </div>
+                    {ticket.revisedScore && (
+                      <small className="sports-notice">
+                        Provider revised the regulation score to {ticket.revisedScore}. This ticket
+                        still shows its original settlement.
+                      </small>
+                    )}
                     {ticket.state !== 'Open' && (
                       <div>
                         <span>{ticket.state === 'Void' ? 'Refund' : 'Return'}</span>
