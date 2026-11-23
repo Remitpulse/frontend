@@ -205,14 +205,22 @@ function TransferQueue({
 function HorizonStatus({ hash, token }: { hash: string; token: string }) {
   const [status, setStatus] = useState('')
   const [checking, setChecking] = useState(false)
-  async function check() {
+  const [canReconcile, setCanReconcile] = useState(false)
+  async function check(reconcile = false) {
     setChecking(true)
+    setCanReconcile(false)
     try {
       const response = await fetch('/api/casino?admin&transfer=' + hash, {
         headers: { Authorization: 'Bearer ' + token },
+        method: reconcile ? 'POST' : 'GET',
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error)
+      if (reconcile) {
+        setStatus(data.message)
+        return
+      }
+      setCanReconcile(data.status === 'confirmed')
       setStatus(
         data.status === 'not-found'
           ? 'Horizon has no record of this hash.'
@@ -228,9 +236,14 @@ function HorizonStatus({ hash, token }: { hash: string; token: string }) {
   }
   return (
     <div>
-      <button className="button outlined" type="button" disabled={checking} onClick={check}>
+      <button className="button outlined" type="button" disabled={checking} onClick={() => check()}>
         {checking ? 'Checking…' : 'Check network status'}
       </button>
+      {canReconcile && (
+        <button className="button outlined" type="button" onClick={() => check(true)}>
+          Reconcile confirmed transfer
+        </button>
+      )}
       {status && <small role="status">{status}</small>}
     </div>
   )
