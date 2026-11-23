@@ -81,7 +81,12 @@ export function Sportsbook({
 
   const latest = market?.events.find((event) => event.id === pick?.event.id)
   const taken = market?.tickets.some((ticket) => ticket.event === pick?.event.id)
-  const closed = !latest || latest.starts <= now || taken
+  const latestOption = latest?.options.find((option) => option.selection === pick?.option.selection)
+  const quoteChanged =
+    !!pick &&
+    !!latest &&
+    (latest.starts !== pick.event.starts || latestOption?.price !== pick.option.price)
+  const closed = !latest || latest.starts <= now || taken || quoteChanged
   let projected: bigint | undefined
   let validStake = false
   try {
@@ -104,6 +109,7 @@ export function Sportsbook({
       const { sports, message } = await act({
         action: 'sports-place',
         event: pick.event.id,
+        starts: pick.event.starts,
         selection: pick.option.selection,
         price: pick.option.price,
         amount: stake,
@@ -231,6 +237,11 @@ export function Sportsbook({
                 <p className="muted">
                   {pick.event.home} vs {pick.event.away}
                 </p>
+                {quoteChanged && (
+                  <p role="status">
+                    Kickoff or odds changed. Select the outcome again to review the updated slip.
+                  </p>
+                )}
                 <label>
                   Demo stake
                   <div className="amount-input">
