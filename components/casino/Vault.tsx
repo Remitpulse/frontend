@@ -344,7 +344,9 @@ export function Vault({
                     {transfer.status === 'pending'
                       ? 'Awaiting confirmation'
                       : transfer.status === 'failed'
-                        ? 'Failed · Reserve returned'
+                        ? transfer.direction === 'withdrawal'
+                          ? 'Failed · Reserve returned'
+                          : 'Failed · No credit'
                         : 'Confirmed'}
                   </small>
                 </span>
