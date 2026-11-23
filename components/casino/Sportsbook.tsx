@@ -27,6 +27,7 @@ type TicketRow = {
   price: number
   score: string | null
   revisedScore?: string | null
+  revisionObserved?: number | null
   state: 'Open' | 'Won' | 'Lost' | 'Void'
   settles: number
 }
@@ -312,6 +313,16 @@ export function Sportsbook({
                       <small className="sports-notice">
                         Provider revised the regulation score to {ticket.revisedScore}. This ticket
                         still shows its original settlement.
+                        {typeof ticket.revisionObserved === 'number' && (
+                          <>
+                            {' '}
+                            Observed{' '}
+                            <time dateTime={new Date(ticket.revisionObserved).toISOString()}>
+                              {new Date(ticket.revisionObserved).toLocaleString()}
+                            </time>
+                            .
+                          </>
+                        )}
                       </small>
                     )}
                     {ticket.state !== 'Open' && (
