@@ -1,3 +1,5 @@
+import type { DiceProof } from './dice-proof'
+
 export const games = [
   { id: 'dice', title: 'Dice', subtitle: 'Roll under your target', color: '#a483ff', mark: '⚄' },
   {
@@ -22,6 +24,34 @@ export const games = [
     mark: '⌁',
   },
   { id: 'coin', title: 'Coin Flip', subtitle: 'Call heads or tails', color: '#f79ad5', mark: '◈' },
+  {
+    id: 'roulette',
+    title: 'European Roulette',
+    subtitle: 'Call red, black or zero',
+    color: '#ff877e',
+    mark: '◎',
+  },
+  {
+    id: 'keno',
+    title: 'Keno',
+    subtitle: 'Pick five numbers from forty',
+    color: '#75d7ff',
+    mark: '✦',
+  },
+  {
+    id: 'wheel',
+    title: 'Wheel',
+    subtitle: 'Spin a twelve-segment wheel',
+    color: '#ffce80',
+    mark: '◉',
+  },
+  {
+    id: 'baccarat',
+    title: 'Baccarat',
+    subtitle: 'Back the player, banker or tie',
+    color: '#ffaacc',
+    mark: '♠',
+  },
 ] as const
 
 export type Game = (typeof games)[number]
@@ -32,8 +62,22 @@ export type Entry = {
   amount: string
   created: string
   detail: string
+  proof?: DiceProof
 }
-export type Round = { stake: string; picks: number[]; payout: string }
+export type Round = {
+  stake: string
+  picks: number[]
+  mineCount: number
+  payout: string
+  nextPayout: string
+}
+export type WalletTransfer = {
+  hash: string
+  amount: string
+  direction: 'deposit' | 'withdrawal'
+  status: 'confirmed' | 'pending' | 'failed'
+  created: string
+}
 export type CasinoState = {
   demo: string
   testnet: string
@@ -42,6 +86,14 @@ export type CasinoState = {
   round: Round | null
   paused: boolean
   walletEnabled: boolean
+  linkedWallet?: string | null
+  transfers?: WalletTransfer[]
   deposit: { hash: string; amount: string } | null
   withdrawal: { hash: string; amount: string } | null
 }
+
+export const gameGroups = {
+  Arcade: ['dice', 'mines', 'plinko', 'limbo', 'coin'],
+  Tables: ['roulette', 'baccarat'],
+  Draws: ['keno', 'wheel'],
+} satisfies Record<string, Game['id'][]>

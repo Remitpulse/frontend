@@ -58,3 +58,113 @@ test('can recover the same demo ledger using an origin-bound passkey', async ({
   await expect(page.getByText('Signed in with a passkey.')).toBeVisible()
   await expect(page.locator('.history li').filter({ hasText: 'Plinko' })).toHaveCount(2)
 })
+
+test('favorites and new game filters lead to a server-settled Keno round', async ({ page }) => {
+  await page.goto('/')
+  const lobby = page.getByRole('region', { name: 'Game lobby' })
+  await lobby.getByRole('button', { name: 'Tables' }).click()
+  await expect(lobby.locator('.game-card')).toHaveCount(2)
+  await lobby.getByRole('button', { name: 'Favorite Baccarat' }).click()
+  await lobby.getByRole('button', { name: 'Favorites', exact: true }).click()
+  await expect(lobby.locator('.game-card')).toHaveCount(1)
+  await lobby.getByRole('button', { name: 'Draws', exact: true }).click()
+  await lobby.getByRole('button', { name: /^Keno / }).click()
+  const game = page.getByRole('dialog', { name: 'Keno' })
+  await expect(game.getByRole('button', { name: 'Draw numbers' })).toBeDisabled()
+  for (let number = 1; number <= 5; number++) {
+    await game.getByRole('button', { name: String(number), exact: true }).click()
+  }
+  await game.getByRole('button', { name: 'Draw numbers' }).click()
+  await expect(game.locator('[data-drawn=true]')).toHaveCount(10)
+  await expect(game.getByText(/^Payout .* XLM$/)).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('region', { name: 'Recently played' })).toContainText('Keno')
+})
+
+test('places a simulated XLM sports ticket from the quoted odds', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Sports', exact: true }).click()
+  await page.getByRole('button', { name: 'Basketball', exact: true }).click()
+  const fixture = page.locator('.fixture').filter({ hasText: 'Metro Comets' })
+  await fixture.getByRole('button', { name: /^Metro Comets / }).click()
+  const slip = page.getByRole('region', { name: 'Bet slip' })
+  await slip.getByRole('textbox').fill('0.1234567')
+  await expect(slip.getByText('Potential return')).toBeVisible()
+  await slip.getByRole('button', { name: 'Place demo bet' }).click()
+  await expect(page.getByText('Demo ticket accepted.')).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Your tickets' })).toContainText(
+    '0.1234567 XLM stake',
+  )
+})
+
+test('captures a Dice commitment and verifies the same receipt after settlement', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await expect(page.getByRole('button', { name: '1000.00 XLM demo balance' })).toBeVisible()
+  await page.getByRole('button', { name: /^Dice / }).click()
+  await page.getByText('Pre-wager Dice proof', { exact: true }).click()
+  await page.getByRole('button', { name: 'Show next roll commitment' }).click()
+  const commitment = page.getByLabel(/Save this commitment before rolling/)
+  await expect(commitment).toHaveValue(/^[a-f0-9]{64}$/)
+  const saved = await commitment.inputValue()
+  await page.getByRole('button', { name: 'Roll dice' }).click()
+  await expect(page.getByText(/^Payout .* XLM$/)).toBeVisible()
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: 'Activity', exact: true }).click()
+  await page.getByText('Dice proof', { exact: true }).click()
+  const recorded = page.getByLabel('Commitment saved before the roll (optional)')
+  await recorded.fill('0'.repeat(64))
+  await page.getByRole('button', { name: 'Verify roll and payout' }).click()
+  await expect(page.getByText('The receipt does not match your saved commitment.')).toBeVisible()
+  await recorded.fill(saved)
+  await page.getByRole('button', { name: 'Verify roll and payout' }).click()
+  await expect(page.getByText('Saved commitment, roll and payout match.')).toBeVisible()
+})
+
+test('requires a new selection when a football kickoff changes', async ({ page }) => {
+  const starts = Date.now() + 5 * 60_000
+  let offset = 0
+  await page.route('**/api/casino', async (route) => {
+    const request = route.request()
+    if (request.method() !== 'POST' || request.postDataJSON()?.action !== 'sports-market') {
+      await route.continue()
+      return
+    }
+    await route.fulfill({
+      json: {
+        sports: {
+          time: Date.now(),
+          footballStatus: 'current',
+          tickets: [],
+          events: [
+            {
+              id: 'football-data:1',
+              sport: 'Football',
+              league: 'Example League',
+              home: 'Home Club',
+              away: 'Away Club',
+              starts: starts + offset,
+              settles: starts + offset,
+              options: [
+                { selection: 0, label: 'Home Club', price: 235 },
+                { selection: 1, label: 'Draw', price: 320 },
+                { selection: 2, label: 'Away Club', price: 310 },
+              ],
+            },
+          ],
+        },
+      },
+    })
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Sports', exact: true }).click()
+  await page.getByRole('button', { name: /^Home Club / }).click()
+  const slip = page.getByRole('region', { name: 'Bet slip' })
+  await expect(slip.getByRole('button', { name: 'Place demo bet' })).toBeEnabled()
+  offset = 60_000
+  await expect(slip.getByText(/Kickoff or odds changed/)).toBeVisible({ timeout: 10_000 })
+  await expect(slip.getByRole('button', { name: 'Market unavailable' })).toBeDisabled()
+  await page.getByRole('button', { name: /^Home Club / }).click()
+  await expect(slip.getByRole('button', { name: 'Place demo bet' })).toBeEnabled()
+})

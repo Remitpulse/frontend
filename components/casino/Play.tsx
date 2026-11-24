@@ -2,10 +2,13 @@
 
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import { CircleHelp, Gem, Orbit } from 'lucide-react'
+import { CircleHelp, Gem, Orbit, CircleDot, Check, X as CloseIcon } from 'lucide-react'
 import { type CasinoState, type Game } from '@/lib/casino/catalog'
-import { xlm } from '@/lib/casino/money'
+import { parseXlm, STROOPS, xlm } from '@/lib/casino/money'
 import type { Result } from './Arcade'
+import { DiceReceipt } from './DiceReceipt'
+import { Wager } from './Wager'
+import { CoinStage, DiceTrack, LimboStage, Spinner } from './GameStage'
 
 export function Play({
   game,
@@ -17,30 +20,93 @@ export function Play({
   act: (input: Record<string, unknown>) => Promise<Result>
 }) {
   const [amount, setAmount] = useState('1')
+  const [mineCount, setMineCount] = useState(3)
   const [target, setTarget] = useState(50)
   const [limbo, setLimbo] = useState('2.00')
-  const [side, setSide] = useState('Heads')
+  const [side, setSide] = useState(
+    game.id === 'roulette' ? 'Red' : game.id === 'baccarat' ? 'Player' : 'Heads',
+  )
+  const [numbers, setNumbers] = useState<number[]>([])
+  const choices =
+    game.id === 'coin'
+      ? ['Heads', 'Tails']
+      : game.id === 'roulette'
+        ? ['Red', 'Black', 'Zero']
+        : game.id === 'baccarat'
+          ? ['Player', 'Banker', 'Tie']
+          : []
+  const [settledStake, setSettledStake] = useState(0n)
   const [result, setResult] = useState<Result>()
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [animation, setAnimation] = useState(0)
+  const [settledCommitment, setSettledCommitment] = useState<string>()
+  const [diceCommitment, setDiceCommitment] = useState<string>()
   const round = state?.round
   const isMines = game.id === 'mines'
+
+  let stake = 0n
+  try {
+    stake = parseXlm(amount)
+  } catch {
+    /* keep incomplete input editable */
+  }
+  const validStake = stake > 0n && stake <= 100n * STROOPS && stake <= BigInt(state?.demo ?? '0')
+  const payout = result?.payout === undefined ? undefined : BigInt(result.payout)
+  const multiplier = payout !== undefined && settledStake > 0n ? (payout * 100n) / settledStake : 0n
+  const multiplierText =
+    (multiplier / 100n).toString() + '.' + (multiplier % 100n).toString().padStart(2, '0') + '×'
+  const history =
+    state?.entries
+      .filter((entry) => entry.game === game.title && ['Payout', 'Result'].includes(entry.kind))
+      .slice(0, 5) ?? []
+
+  async function requestDiceCommitment() {
+    const { commitment } = await act({ action: 'dice-commit' })
+    if (!commitment || !/^[a-f0-9]{64}$/.test(commitment)) {
+      throw new Error('Could not obtain a Dice commitment.')
+    }
+    return commitment
+  }
+
+  async function showDiceCommitment() {
+    setBusy(true)
+    setError('')
+    try {
+      setDiceCommitment(await requestDiceCommitment())
+    } catch (failure) {
+      setError((failure as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function send(action: string, tile?: number) {
     setBusy(true)
     setError('')
     try {
       const [whole, fraction = ''] = limbo.split('.')
-      const setting =
-        game.id === 'dice'
-          ? target
-          : game.id === 'coin'
-            ? side
-            : /^\d{1,3}(\.\d{1,2})?$/.test(limbo)
-              ? Number(whole + fraction.padEnd(2, '0'))
-              : null
-      setResult(await act({ action, game: game.id, amount, setting, tile }))
+      let setting: unknown = side
+      if (game.id === 'dice') setting = target
+      if (isMines) setting = mineCount
+      if (game.id === 'keno') setting = numbers
+      if (game.id === 'limbo') {
+        setting = /^\d{1,3}(\.\d{1,2})?$/.test(limbo)
+          ? Number(whole + fraction.padEnd(2, '0'))
+          : null
+      }
+      const wager: Record<string, unknown> = { action, game: game.id, amount, setting, tile }
+      if (action === 'play' && game.id === 'dice') {
+        const commitment = diceCommitment ?? (await requestDiceCommitment())
+        setDiceCommitment(undefined)
+        const bytes = crypto.getRandomValues(new Uint8Array(32))
+        wager.commitment = commitment
+        wager.clientSeed = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+      }
+      const resolution = await act(wager)
+      setSettledStake(isMines && round ? BigInt(round.stake) : stake)
+      setSettledCommitment(typeof wager.commitment === 'string' ? wager.commitment : undefined)
+      setResult(resolution)
       setAnimation((value) => value + 1)
     } catch (failure) {
       setError((failure as Error).message)
@@ -55,32 +121,70 @@ export function Play({
     plinko: 'Drop ball',
     limbo: 'Launch',
     coin: 'Flip coin',
+    roulette: 'Spin roulette',
+    keno: 'Draw numbers',
+    wheel: 'Spin wheel',
+    baccarat: 'Deal cards',
   }
   return (
     <section
       className={'play play-' + game.id}
       style={{ '--game-color': game.color } as React.CSSProperties}
     >
-      <p className="eyebrow">
-        <Orbit size={16} /> XLM ORIGINALS
-      </p>
-      <h2>{game.title}</h2>
+      <header className="play-header">
+        <p className="eyebrow">
+          <Orbit size={16} /> XLM ORIGINALS
+        </p>
+        <h2>{game.title}</h2>
+      </header>
       <div className="play-layout">
         <div className="play-controls">
-          <label>
-            Demo wager{' '}
-            <div className="amount-input">
-              <input
-                type="text"
-                inputMode="decimal"
-                value={isMines && round ? xlm(round.stake, 0) : amount}
-                onChange={(e) => setAmount(e.target.value)}
-                disabled={busy || !!(isMines && round)}
-              />
-              <span>XLM</span>
+          <Wager
+            value={isMines && round ? xlm(round.stake, 0) : amount}
+            onChange={setAmount}
+            disabled={busy || !!(isMines && round)}
+            balance={state?.demo}
+          />
+          {isMines && (
+            <div className="mine-risk">
+              <label>
+                Mines on the board
+                <select
+                  value={round?.mineCount ?? mineCount}
+                  disabled={busy || !!round}
+                  onChange={(e) => {
+                    setMineCount(Number(e.target.value))
+                    setResult(undefined)
+                  }}
+                >
+                  {Array.from({ length: 24 }, (_, index) => index + 1).map((count) => (
+                    <option key={count}>{count}</option>
+                  ))}
+                </select>
+              </label>
+              <div className="wager-shortcuts" aria-label="Mine count shortcuts">
+                {[1, 3, 5, 9, 15, 24].map((count) => (
+                  <button
+                    key={count}
+                    disabled={busy || !!round}
+                    aria-label={'Set ' + count + ' mines'}
+                    aria-pressed={(round?.mineCount ?? mineCount) === count}
+                    onClick={() => {
+                      setMineCount(count)
+                      setResult(undefined)
+                    }}
+                  >
+                    {count}
+                  </button>
+                ))}
+              </div>
             </div>
-          </label>
-          <small>Available {state ? xlm(state.demo) : '–'} XLM</small>
+          )}
+          {isMines && round && (
+            <small>
+              {round.picks.length} of {25 - round.mineCount} safe tiles found
+            </small>
+          )}
           {game.id === 'dice' && (
             <label>
               Roll under {target}
@@ -89,10 +193,36 @@ export function Play({
                 min="2"
                 max="98"
                 value={target}
-                onChange={(e) => setTarget(Number(e.target.value))}
+                onChange={(e) => {
+                  setTarget(Number(e.target.value))
+                  setResult(undefined)
+                }}
                 disabled={busy}
               />
             </label>
+          )}
+          {game.id === 'dice' && (
+            <details>
+              <summary>Pre-wager Dice proof</summary>
+              <button
+                type="button"
+                className="button outlined"
+                disabled={busy}
+                onClick={showDiceCommitment}
+              >
+                Show next roll commitment
+              </button>
+              {diceCommitment && (
+                <label>
+                  Save this commitment before rolling to compare it with the receipt in Activity.
+                  <input
+                    readOnly
+                    value={diceCommitment}
+                    onFocus={(event) => event.target.select()}
+                  />
+                </label>
+              )}
+            </details>
           )}
           {game.id === 'limbo' && (
             <label>
@@ -100,7 +230,10 @@ export function Play({
               <div className="amount-input">
                 <input
                   value={limbo}
-                  onChange={(e) => setLimbo(e.target.value)}
+                  onChange={(e) => {
+                    setLimbo(e.target.value)
+                    setResult(undefined)
+                  }}
                   inputMode="decimal"
                   disabled={busy}
                 />
@@ -108,9 +241,9 @@ export function Play({
               </div>
             </label>
           )}
-          {game.id === 'coin' && (
+          {choices.length > 0 && (
             <div className="segmented">
-              {['Heads', 'Tails'].map((value) => (
+              {choices.map((value) => (
                 <button
                   key={value}
                   aria-pressed={side === value}
@@ -133,7 +266,13 @@ export function Play({
           ) : (
             <button
               className="button primary"
-              disabled={busy || !state || state.paused}
+              disabled={
+                busy ||
+                !state ||
+                state.paused ||
+                !validStake ||
+                (game.id === 'keno' && numbers.length !== 5)
+              }
               onClick={() => send('play')}
             >
               {busy ? 'Resolving…' : buttonText[game.id]}
@@ -143,48 +282,173 @@ export function Play({
           <p className="game-rule">
             <CircleHelp size={15} />
             {game.subtitle}.
+            {game.id === 'keno' && ' Gross returns for 2–5 matches: 1.5×, 6.5×, 20×, 125×.'}
+            {game.id === 'wheel' &&
+              ' Twelve equally likely segments: six blanks, three 1.5× returns, plus 1.75×, 2× and 3.5×.'}
+            {game.id === 'roulette' && ' Gross return: 2× for a color and 36× for zero.'}
+            {game.id === 'baccarat' &&
+              ' Gross returns: Player 2×, Banker 1.95×, Tie 9×. A tie returns a Player or Banker stake.'}
           </p>
         </div>
         <div className="play-stage">
-          {isMines ? (
-            <div className="tiles">
-              {Array.from({ length: 25 }, (_, index) => {
-                const gem = round?.picks.includes(index)
-                const mine = !round && result?.mines?.includes(index)
-                return (
-                  <button
-                    key={index}
-                    className={gem ? 'gem' : mine ? 'mine' : ''}
-                    disabled={!round || busy || !!gem || state?.paused}
-                    aria-label={`Tile ${index + 1}${gem ? ', gem' : mine ? ', mine' : ''}`}
-                    onClick={() => send('reveal', index)}
-                  >
-                    {gem ? <Gem size={22} /> : mine ? '✹' : '·'}
-                  </button>
-                )
-              })}
+          <div className="stage-status">
+            <span>
+              <CircleDot size={13} />{' '}
+              {busy
+                ? 'Resolving'
+                : round && isMines
+                  ? 'Round active'
+                  : result
+                    ? 'Round result'
+                    : 'Table open'}
+            </span>
+            <span>Simulated XLM</span>
+          </div>
+          {isMines && round?.nextPayout && (
+            <div className="mine-returns">
+              <span>
+                Cash out <strong>{round.picks.length ? xlm(round.payout) : '–'} XLM</strong>
+              </span>
+              <span>
+                Next gem <strong>{xlm(round.nextPayout)} XLM</strong>
+              </span>
             </div>
-          ) : game.id === 'plinko' ? (
-            <Plinko key={animation} path={result?.path} />
-          ) : (
-            <motion.div
-              key={animation}
-              className="game-medallion"
-              initial={animation ? { scale: 0.78, rotate: -12 } : false}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: 'spring', stiffness: 210 }}
-              aria-hidden="true"
-            >
-              {game.mark}
-            </motion.div>
           )}
-          <div className="outcome" aria-live="polite">
-            <strong>{result?.message || (round ? 'Choose a tile' : 'Ready to play')}</strong>
-            {result?.payout !== undefined && <span>Payout {xlm(result.payout)} XLM</span>}
+          <div className="stage-board">
+            {isMines ? (
+              <div className="tiles">
+                {Array.from({ length: 25 }, (_, index) => {
+                  const gem = round?.picks.includes(index) ?? result?.safe?.includes(index)
+                  const mine = !round && result?.mines?.includes(index)
+                  const unpicked = !round && !!result?.mines && !gem && !mine
+                  return (
+                    <button
+                      key={index}
+                      className={gem ? 'gem' : mine ? 'mine' : unpicked ? 'unpicked' : ''}
+                      disabled={!round || busy || !!gem || state?.paused}
+                      aria-label={`Tile ${index + 1}${gem ? ', gem' : mine ? ', mine' : ''}`}
+                      onClick={() => send('reveal', index)}
+                    >
+                      <span className="tile-icon" aria-hidden="true">
+                        {gem || unpicked ? <Gem size={20} /> : mine ? '✹' : '◇'}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            ) : game.id === 'keno' ? (
+              <div className="keno-board">
+                <p>{numbers.length} of 5 selected</p>
+                {result?.board && (
+                  <div className="keno-draw" aria-label="Draw order">
+                    {result.board.map((number, index) => (
+                      <motion.span
+                        key={number}
+                        initial={{ opacity: 0, scale: 0.75 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: index * 0.07 }}
+                        data-match={numbers.includes(number)}
+                      >
+                        {number}
+                      </motion.span>
+                    ))}
+                  </div>
+                )}
+                <div className="keno-grid">
+                  {Array.from({ length: 40 }, (_, i) => i + 1).map((number) => (
+                    <button
+                      key={number}
+                      aria-pressed={numbers.includes(number)}
+                      data-drawn={result?.board?.includes(number)}
+                      disabled={busy || (numbers.length === 5 && !numbers.includes(number))}
+                      onClick={() => {
+                        setResult(undefined)
+                        setNumbers(
+                          numbers.includes(number)
+                            ? numbers.filter((value) => value !== number)
+                            : [...numbers, number],
+                        )
+                      }}
+                    >
+                      {number}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : game.id === 'baccarat' ? (
+              <Baccarat key={animation} hand={result?.hand} />
+            ) : game.id === 'wheel' || game.id === 'roulette' ? (
+              <Spinner
+                key={animation}
+                roulette={game.id === 'roulette'}
+                value={result?.board?.[0]}
+              />
+            ) : game.id === 'dice' ? (
+              <DiceTrack key={animation} target={target} roll={result?.message?.padStart(5, '0')} />
+            ) : game.id === 'limbo' ? (
+              <LimboStage key={animation} outcome={result?.message} target={limbo} />
+            ) : game.id === 'coin' ? (
+              <CoinStage face={result?.message} round={animation} />
+            ) : (
+              <Plinko key={animation} path={result?.path} />
+            )}
+          </div>
+          <div className="outcome" aria-live="polite" aria-atomic="true">
+            {payout !== undefined || result?.bust ? (
+              <motion.div
+                key={animation}
+                className="round-receipt"
+                data-profit={payout !== undefined && payout > settledStake}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.22 }}
+              >
+                {payout !== undefined && payout > 0n ? (
+                  <Check size={23} />
+                ) : (
+                  <CloseIcon size={21} />
+                )}
+                <div>
+                  <strong>
+                    {payout && payout > 0n ? multiplierText + ' return' : 'Round complete'}
+                  </strong>
+                  <span>{result?.message}</span>
+                </div>
+                <b>Payout {xlm(payout ?? 0n)} XLM</b>
+              </motion.div>
+            ) : (
+              <strong>
+                {result?.message || (round && isMines ? 'Choose a tile' : 'Ready to play')}
+              </strong>
+            )}
             {error && (
               <span className="error-text" role="alert">
                 {error}
               </span>
+            )}
+          </div>
+          {result?.proof && (
+            <DiceReceipt
+              key={result.proof.commitment}
+              proof={result.proof}
+              priorCommitment={settledCommitment}
+            />
+          )}
+          <div className="round-history" aria-label="Recent outcomes">
+            <span>Recent rounds</span>
+            {history.length ? (
+              history.map((entry) => (
+                <span
+                  className="history-pill"
+                  key={entry.id}
+                  data-paid={entry.kind === 'Payout'}
+                  title={entry.detail}
+                >
+                  {xlm(entry.amount)} XLM
+                </span>
+              ))
+            ) : (
+              <small>No completed rounds</small>
             )}
           </div>
         </div>
@@ -193,31 +457,89 @@ export function Play({
   )
 }
 
-function Plinko({ path }: { path?: number[] }) {
-  const stops = [0]
-  for (const step of path ?? []) {
-    stops.push(stops[stops.length - 1] + (step ? 17 : -17))
-  }
+function Baccarat({ hand }: { hand?: Result['hand'] }) {
   return (
-    <div className="plinko" aria-hidden="true">
-      {Array.from({ length: 8 }, (_, row) => (
-        <div className="peg-row" key={row}>
-          {Array.from({ length: row + 2 }, (_, pin) => (
-            <i key={pin} />
-          ))}
+    <div className="baccarat-hands">
+      {(['player', 'banker'] as const).map((side, lane) => (
+        <div key={side} data-winner={hand?.winner.toLowerCase() === side}>
+          <strong>
+            {lane ? 'Banker' : 'Player'}{' '}
+            {hand && ' · ' + (lane ? hand.bankerTotal : hand.playerTotal)}
+          </strong>
+          <div>
+            {(hand?.[side] ?? [-1, -1]).map((card, index) => {
+              const suit = ['♠', '♥', '♣', '♦'][Math.floor(card / 13)]
+              return (
+                <motion.span
+                  key={index}
+                  data-back={card === -1}
+                  data-red={suit === '♥' || suit === '♦'}
+                  initial={hand ? { opacity: 0, y: -10 } : false}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: hand ? (index * 2 + lane) * 0.09 : 0 }}
+                >
+                  {card < 0 ? (
+                    '✧'
+                  ) : (
+                    <>
+                      <b>
+                        {
+                          ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'][
+                            card % 13
+                          ]
+                        }
+                      </b>
+                      <i>{suit}</i>
+                    </>
+                  )}
+                </motion.span>
+              )
+            })}
+          </div>
         </div>
       ))}
-      {path && (
-        <motion.i
-          className="drop"
-          initial={{ x: 0, y: 0 }}
-          animate={{ x: stops, y: stops.map((_, index) => index * 22) }}
-          transition={{ duration: 0.75, ease: 'linear' }}
-        />
-      )}
+    </div>
+  )
+}
+
+function Plinko({ path }: { path?: number[] }) {
+  const positions = [{ x: 50, y: 3 }]
+  path?.forEach((step, index) => {
+    positions.push({ x: positions[index].x + (step ? 50 / 9 : -50 / 9), y: 12 + index * 10.3 })
+  })
+  if (path) positions.push({ ...positions[positions.length - 1], y: 100 })
+  const landing = path?.reduce((sum, step) => sum + step, 0)
+  return (
+    <div className="plinko" aria-hidden="true">
+      <div className="peg-field">
+        {Array.from({ length: 8 }, (_, row) => (
+          <div className="peg-row" key={row}>
+            {Array.from({ length: row + 2 }, (_, pin) => (
+              <i
+                key={pin}
+                style={{
+                  left: 50 + (pin - (row + 1) / 2) * (100 / 9) + '%',
+                  top: 12 + row * 10.3 + '%',
+                }}
+              />
+            ))}
+          </div>
+        ))}
+        {path && (
+          <motion.i
+            className="drop"
+            initial={{ left: '50%', top: '3%' }}
+            animate={{
+              left: positions.map((point) => point.x + '%'),
+              top: positions.map((point) => point.y + '%'),
+            }}
+            transition={{ duration: 0.9, ease: 'linear' }}
+          />
+        )}
+      </div>
       <div className="slots">
         {['6', '2.2', '1.2', '.85', '.55', '.85', '1.2', '2.2', '6'].map((slot, index) => (
-          <span key={index} data-hit={path && index === path.reduce((sum, step) => sum + step, 0)}>
+          <span key={index} data-hit={index === landing}>
             {slot}×
           </span>
         ))}
