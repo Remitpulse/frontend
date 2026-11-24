@@ -38,6 +38,7 @@ export type SportsMarket = {
   events: Event[]
   tickets: TicketRow[]
   time: number
+  scheduleStatus?: DailySchedule['status']
   footballStatus?: 'simulated' | 'unavailable' | 'current'
 }
 export type DailySchedule = {
@@ -229,6 +230,9 @@ export function Sportsbook({
           <p className="muted">
             {pick.event.home} vs {pick.event.away}
           </p>
+          {pick.event.id.startsWith('sportsdb:') && (
+            <p className="muted">Settles using the provider’s official final score.</p>
+          )}
           {pick.event.id.startsWith('football-data:') && (
             <p className="muted">
               Settles on the score after regulation time, including stoppage time.
@@ -288,8 +292,7 @@ export function Sportsbook({
           </p>
           <h1 id="sports-title">Matchday</h1>
           <p>
-            Football, basketball and tennis. Pick a match winner and track your ticket in simulated
-            XLM.
+            Browse real fixtures across the available leagues and place pre-match demo bets in XLM.
           </p>
         </div>
         <span>
@@ -305,7 +308,7 @@ export function Sportsbook({
               </button>
             ))}
           </div>
-          {schedule && schedule.status !== 'disabled' && (
+          {schedule && schedule.status !== 'disabled' && !events?.length && (
             <section className="daily-fixtures" aria-label="Worldwide fixtures">
               <h2>Worldwide fixtures</h2>
               <p className="muted">
@@ -365,8 +368,18 @@ export function Sportsbook({
               <small>Schedule and badges by TheSportsDB</small>
             </section>
           )}
-          {schedule && schedule.status !== 'disabled' && (
-            <h2 className="daily-market-title">Demo betting markets</h2>
+          {market?.scheduleStatus && market.scheduleStatus !== 'disabled' && (
+            <h2 className="daily-market-title">Upcoming markets</h2>
+          )}
+          {market?.scheduleStatus === 'unavailable' && (
+            <p className="notice" role="status">
+              The live fixture feed is unavailable. New markets are paused.
+            </p>
+          )}
+          {market?.scheduleStatus === 'partial' && (
+            <p className="notice" role="status">
+              Some leagues are temporarily unavailable.
+            </p>
           )}
           {fixturesUnavailable && (
             <p className="notice" role="status">
@@ -457,7 +470,9 @@ export function Sportsbook({
                     <small>
                       {event.id.startsWith('football-data:')
                         ? 'Football data by football-data.org · 90-minute result · Simulated odds'
-                        : 'Simulated fixture'}
+                        : event.id.startsWith('sportsdb:')
+                          ? 'TheSportsDB · Final score · Demo odds'
+                          : 'Simulated fixture'}
                     </small>
                     {booked && <small>Ticket placed</small>}
                   </li>
