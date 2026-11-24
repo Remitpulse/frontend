@@ -13,9 +13,8 @@ function generateNonce(): string {
 
 export function proxy(request: NextRequest) {
   if (
-    request.method === 'GET' &&
-    request.headers.get('host') === 'frontend-nu-vert-15.vercel.app' &&
-    !request.nextUrl.pathname.startsWith('/api/')
+    (request.method === 'GET' || request.method === 'HEAD') &&
+    request.headers.get('host') === 'frontend-nu-vert-15.vercel.app'
   ) {
     const destination = new URL('https://preview-5382c0b5639bd638.up.railway.app')
     destination.pathname = request.nextUrl.pathname
