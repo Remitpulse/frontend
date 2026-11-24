@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { CalendarDays, Flag, Ticket, Trophy } from 'lucide-react'
 import { parseXlm, xlm } from '@/lib/casino/money'
 import type { CasinoState } from '@/lib/casino/catalog'
@@ -13,6 +14,8 @@ type Event = {
   league: string
   home: string
   away: string
+  homeBadge?: string
+  awayBadge?: string
   starts: number
   settles: number
   options: Option[]
@@ -37,16 +40,49 @@ export type SportsMarket = {
   time: number
   footballStatus?: 'simulated' | 'unavailable' | 'current'
 }
+export type DailySchedule = {
+  status: 'disabled' | 'unavailable' | 'partial' | 'current'
+  fixtures: (Pick<Event, 'id' | 'sport' | 'league' | 'home' | 'away' | 'starts'> & {
+    homeBadge?: string
+    awayBadge?: string
+  })[]
+}
+
+function TeamBadge({ name, src }: { name: string; src?: string }) {
+  const [failed, setFailed] = useState(false)
+  return src && !failed ? (
+    // The provider supplies small badge images from CSP-allowlisted hosts.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      className="fixture-badge"
+      src={src}
+      alt=""
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  ) : (
+    <span className="fixture-badge" aria-hidden="true">
+      {name.trim().slice(0, 2).toUpperCase()}
+    </span>
+  )
+}
+
 const filters = ['All sports', 'Football', 'Basketball', 'Tennis']
 const odds = (value: number) => (value / 100).toFixed(2)
 
 export function Sportsbook({
   state,
   act,
+  service,
+  reconnect,
 }: {
+  service: 'loading' | 'ready' | 'unavailable'
+  reconnect: () => Promise<void>
   state?: CasinoState
   act: (input: Record<string, unknown>) => Promise<Result>
 }) {
+  const [schedule, setSchedule] = useState<DailySchedule>()
+  const [scheduleRetry, setScheduleRetry] = useState(0)
   const [market, setMarket] = useState<SportsMarket>()
   const [filter, setFilter] = useState('All sports')
   const [pick, setPick] = useState<{ event: Event; option: Option }>()
@@ -56,10 +92,16 @@ export function Sportsbook({
   const [refreshIssue, setRefreshIssue] = useState('')
   const [notice, setNotice] = useState('')
   const [now, setNow] = useState(Date.now)
-  const slip = useRef<HTMLElement>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
   const requestLock = useRef(false)
 
-  const ready = !!state
+  const [refreshVersion, setRefreshVersion] = useState(0)
+  const [sheet, setSheet] = useState<HTMLDialogElement | null>(null)
+  useEffect(() => {
+    if (sheetOpen && sheet && !sheet.open) sheet.showModal()
+  }, [sheet, sheetOpen])
+  const ready = service === 'ready' && !!state
+  const fixturesUnavailable = service === 'unavailable' || !!refreshIssue
   useEffect(() => {
     if (!ready) return
     let cancelled = false
@@ -74,8 +116,7 @@ export function Sportsbook({
           setRefreshIssue('')
         }
       } catch {
-        if (!cancelled && !requestLock.current)
-          setRefreshIssue('Could not refresh fixtures. Waiting for an updated market.')
+        if (!cancelled && !requestLock.current) setRefreshIssue('Fixtures unavailable.')
       } finally {
         refreshing = false
       }
@@ -88,7 +129,31 @@ export function Sportsbook({
       window.clearInterval(refreshTimer)
       window.clearInterval(clock)
     }
-  }, [ready, act])
+  }, [ready, act, refreshVersion])
+
+  useEffect(() => {
+    if (!ready) return
+    let active = true
+    let pending = false
+    async function refreshSchedule() {
+      if (pending) return
+      pending = true
+      try {
+        const { schedule } = await act({ action: 'sports-schedule' })
+        if (active) setSchedule(schedule)
+      } catch {
+        if (active) setSchedule({ status: 'unavailable', fixtures: [] })
+      } finally {
+        pending = false
+      }
+    }
+    void refreshSchedule()
+    const timer = window.setInterval(refreshSchedule, 60_000)
+    return () => {
+      active = false
+      window.clearInterval(timer)
+    }
+  }, [ready, act, scheduleRetry])
 
   const latest = market?.events.find((event) => event.id === pick?.event.id)
   const taken = market?.tickets.some((ticket) => ticket.event === pick?.event.id)
@@ -97,7 +162,8 @@ export function Sportsbook({
     !!pick &&
     !!latest &&
     (latest.starts !== pick.event.starts || latestOption?.price !== pick.option.price)
-  const closed = !latest || latest.starts <= now || taken || quoteChanged || !!refreshIssue
+  const closed =
+    !latest || latest.starts <= now || taken || quoteChanged || !ready || !!refreshIssue
   let projected: bigint | undefined
   let validStake = false
   try {
@@ -137,8 +203,82 @@ export function Sportsbook({
   }
 
   const events = market?.events.filter((event) => filter === 'All sports' || event.sport === filter)
+  const scheduled = schedule?.fixtures.filter((fixture) => fixture.starts > now) ?? []
+  const sportsFilters = [...new Set([...filters, ...scheduled.map((fixture) => fixture.sport)])]
+  if (!sportsFilters.includes(filter)) sportsFilters.push(filter)
+  const dailyFixtures = scheduled.filter(
+    (fixture) => filter === 'All sports' || fixture.sport === filter,
+  )
   const footballUnavailable =
     (filter === 'All sports' || filter === 'Football') && market?.footballStatus === 'unavailable'
+  const betSlip = (
+    <section className="slip" aria-labelledby="slip-title">
+      <h2 id="slip-title">
+        <Ticket size={20} /> Bet slip
+      </h2>
+      {sheetOpen && (
+        <button className="button outlined slip-close" onClick={() => sheet?.close()}>
+          Close slip
+        </button>
+      )}
+      {pick ? (
+        <>
+          <p>
+            <strong>{pick.option.label}</strong> · {odds(pick.option.price)}
+          </p>
+          <p className="muted">
+            {pick.event.home} vs {pick.event.away}
+          </p>
+          {pick.event.id.startsWith('football-data:') && (
+            <p className="muted">
+              Settles on the score after regulation time, including stoppage time.
+            </p>
+          )}
+          {quoteChanged && (
+            <p role="status">
+              Kickoff or odds changed. Select the outcome again to review the updated slip.
+            </p>
+          )}
+          <label>
+            Demo stake
+            <div className="amount-input">
+              <input
+                value={stake}
+                onChange={(e) => setStake(e.target.value)}
+                inputMode="decimal"
+                disabled={busy}
+              />
+              <span>XLM</span>
+            </div>
+          </label>
+          <div className="slip-return">
+            <span>Potential return</span>
+            <strong>{validStake && projected !== undefined ? xlm(projected) : '–'} XLM</strong>
+          </div>
+          <button
+            className="button primary"
+            disabled={busy || closed || !validStake || state?.paused}
+            onClick={place}
+          >
+            {busy ? 'Placing…' : closed ? 'Market unavailable' : 'Place demo bet'}
+          </button>
+        </>
+      ) : (
+        <p className="muted">Choose a price to build your slip.</p>
+      )}
+      {state?.paused && <p className="muted">Demo wagering is paused.</p>}
+      {notice && (
+        <p className="sports-notice" role="status">
+          {notice}
+        </p>
+      )}
+      {issue && (
+        <p className="error-text" role="alert">
+          {issue}
+        </p>
+      )}
+    </section>
+  )
   return (
     <section className="sportsbook" aria-labelledby="sports-title">
       <header className="sports-hero">
@@ -159,18 +299,89 @@ export function Sportsbook({
       <div className="sports-layout">
         <div className="sports-markets">
           <div className="categories" aria-label="Sports filters">
-            {filters.map((sport) => (
+            {sportsFilters.map((sport) => (
               <button key={sport} aria-pressed={filter === sport} onClick={() => setFilter(sport)}>
                 {sport}
               </button>
             ))}
           </div>
-          {refreshIssue && (
+          {schedule && schedule.status !== 'disabled' && (
+            <section className="daily-fixtures" aria-label="Worldwide fixtures">
+              <h2>Worldwide fixtures</h2>
+              <p className="muted">
+                Upcoming fixtures for today and tomorrow in UTC. Kickoff times are local.
+              </p>
+              {(schedule.status === 'unavailable' || schedule.status === 'partial') && (
+                <p className="notice" role="status">
+                  {schedule.status === 'partial'
+                    ? 'Some fixtures are unavailable.'
+                    : 'Worldwide fixtures unavailable.'}{' '}
+                  <button onClick={() => setScheduleRetry((value) => value + 1)}>
+                    Retry schedule
+                  </button>
+                </p>
+              )}
+              {dailyFixtures.length === 0 && schedule.status === 'current' && (
+                <p className="empty">No upcoming fixtures match this sport.</p>
+              )}
+              <ul className="fixture-list">
+                {dailyFixtures.map((fixture) => (
+                  <li className="fixture" key={fixture.id}>
+                    <div className="fixture-meta">
+                      <span>
+                        {fixture.sport} · {fixture.league}
+                      </span>
+                      <time dateTime={new Date(fixture.starts).toISOString()}>
+                        {new Date(fixture.starts).toLocaleString([], {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </time>
+                    </div>
+                    <div className="fixture-teams">
+                      <span>
+                        <TeamBadge
+                          key={fixture.homeBadge}
+                          name={fixture.home}
+                          src={fixture.homeBadge}
+                        />
+                        {fixture.home}
+                      </span>
+                      <small>vs</small>
+                      <span>
+                        <TeamBadge
+                          key={fixture.awayBadge}
+                          name={fixture.away}
+                          src={fixture.awayBadge}
+                        />
+                        {fixture.away}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <small>Schedule and badges by TheSportsDB</small>
+            </section>
+          )}
+          {schedule && schedule.status !== 'disabled' && (
+            <h2 className="daily-market-title">Demo betting markets</h2>
+          )}
+          {fixturesUnavailable && (
             <p className="notice" role="status">
-              {refreshIssue}
+              Fixtures unavailable.{' '}
+              <button
+                onClick={() => {
+                  if (!ready) void reconnect()
+                  else setRefreshVersion((version) => version + 1)
+                }}
+              >
+                Retry fixtures
+              </button>
             </p>
           )}
-          {!events && !refreshIssue && (
+          {!events && !fixturesUnavailable && (
             <p className="empty" role="status">
               Loading fixtures…
             </p>
@@ -204,8 +415,16 @@ export function Sportsbook({
                         })}
                       </time>
                     </div>
-                    <h2>
-                      {event.home} <span>vs</span> {event.away}
+                    <h2 className="fixture-teams">
+                      <span>
+                        <TeamBadge key={event.homeBadge} name={event.home} src={event.homeBadge} />
+                        {event.home}
+                      </span>
+                      <small>vs</small>
+                      <span>
+                        <TeamBadge key={event.awayBadge} name={event.away} src={event.awayBadge} />
+                        {event.away}
+                      </span>
                     </h2>
                     <div
                       className="odds-grid"
@@ -218,14 +437,15 @@ export function Sportsbook({
                             pick?.event.id === event.id &&
                             pick.option.selection === option.selection
                           }
-                          disabled={busy || !!booked || event.starts <= now}
+                          disabled={
+                            busy || !ready || !!refreshIssue || !!booked || event.starts <= now
+                          }
                           onClick={() => {
                             setPick({ event, option })
                             setIssue('')
                             setNotice('')
                             if (window.matchMedia('(max-width: 880px)').matches) {
-                              slip.current?.scrollIntoView({ block: 'start' })
-                              slip.current?.focus({ preventScroll: true })
+                              setSheetOpen(true)
                             }
                           }}
                         >
@@ -247,69 +467,23 @@ export function Sportsbook({
           )}
         </div>
         <aside className="sports-side">
-          <section className="slip" aria-labelledby="slip-title" ref={slip} tabIndex={-1}>
-            <h2 id="slip-title">
-              <Ticket size={20} /> Bet slip
-            </h2>
-            {pick ? (
-              <>
-                <p>
-                  <strong>{pick.option.label}</strong> · {odds(pick.option.price)}
-                </p>
-                <p className="muted">
-                  {pick.event.home} vs {pick.event.away}
-                </p>
-                {pick.event.id.startsWith('football-data:') && (
-                  <p className="muted">
-                    Settles on the score after regulation time, including stoppage time.
-                  </p>
-                )}
-                {quoteChanged && (
-                  <p role="status">
-                    Kickoff or odds changed. Select the outcome again to review the updated slip.
-                  </p>
-                )}
-                <label>
-                  Demo stake
-                  <div className="amount-input">
-                    <input
-                      value={stake}
-                      onChange={(e) => setStake(e.target.value)}
-                      inputMode="decimal"
-                      disabled={busy}
-                    />
-                    <span>XLM</span>
-                  </div>
-                </label>
-                <div className="slip-return">
-                  <span>Potential return</span>
-                  <strong>
-                    {validStake && projected !== undefined ? xlm(projected) : '–'} XLM
-                  </strong>
-                </div>
-                <button
-                  className="button primary"
-                  disabled={busy || closed || !validStake || state?.paused}
-                  onClick={place}
-                >
-                  {busy ? 'Placing…' : closed ? 'Market unavailable' : 'Place demo bet'}
-                </button>
-              </>
-            ) : (
-              <p className="muted">Choose a price to build your slip.</p>
-            )}
-            {state?.paused && <p className="muted">Demo wagering is paused.</p>}
-            {notice && (
-              <p className="sports-notice" role="status">
-                {notice}
-              </p>
-            )}
-            {issue && (
-              <p className="error-text" role="alert">
-                {issue}
-              </p>
-            )}
-          </section>
+          <dialog
+            ref={setSheet}
+            className="mobile-slip-sheet"
+            aria-label="Sports bet"
+            onClose={() => setSheetOpen(false)}
+          />
+          {sheetOpen && sheet ? createPortal(betSlip, sheet) : betSlip}
+          {pick && !sheetOpen && (
+            <button
+              className="button primary mobile-slip-trigger"
+              onClick={() => {
+                setSheetOpen(true)
+              }}
+            >
+              Open bet slip
+            </button>
+          )}
           <section className="sports-tickets" aria-labelledby="tickets-title">
             <h2 id="tickets-title">Your tickets</h2>
             {!market?.tickets.length ? (
