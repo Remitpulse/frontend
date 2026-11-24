@@ -12,6 +12,17 @@ function generateNonce(): string {
 }
 
 export function proxy(request: NextRequest) {
+  if (
+    request.method === 'GET' &&
+    request.headers.get('host') === 'frontend-nu-vert-15.vercel.app' &&
+    !request.nextUrl.pathname.startsWith('/api/')
+  ) {
+    const destination = new URL('https://preview-5382c0b5639bd638.up.railway.app')
+    destination.pathname = request.nextUrl.pathname
+    destination.search = request.nextUrl.search
+    return NextResponse.redirect(destination)
+  }
+
   const nonce = generateNonce()
   const csp = buildCsp({ nonce, dev: process.env.NODE_ENV === 'development' })
 

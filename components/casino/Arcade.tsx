@@ -82,28 +82,40 @@ export function Arcade() {
   const [query, setQuery] = useState('')
   const [game, setGame] = useState<Game>()
   const [panel, setPanel] = useState<'wallet' | 'help'>()
-  const [issue, setIssue] = useState('')
+  const [service, setService] = useState<'loading' | 'ready' | 'unavailable'>('loading')
+  const [pauseIssue, setPauseIssue] = useState('')
   const [pausing, setPausing] = useState(false)
   const dialog = useRef<HTMLDialogElement>(null)
   const request = useRef<Promise<Result> | null>(null)
   const heading = useRef<HTMLElement>(null)
 
-  useEffect(() => {
-    request.current ??= casino()
-    request.current.then(
-      (result) => {
-        setState(result.state)
-        try {
-          const saved: unknown = JSON.parse(localStorage.getItem('arcade-favorites') || '[]')
-          if (Array.isArray(saved))
-            setFavorites(saved.filter((id): id is string => typeof id === 'string'))
-        } catch {
-          /* preferences are optional */
-        }
-      },
-      (error) => setIssue(error.message),
-    )
+  const connect = useCallback(async () => {
+    if (request.current) return
+    setService('loading')
+    request.current = casino()
+    try {
+      const result = await request.current
+      setState(result.state)
+      setService('ready')
+    } catch {
+      setService('unavailable')
+    } finally {
+      request.current = null
+    }
   }, [])
+
+  useEffect(() => {
+    void connect()
+    void Promise.resolve().then(() => {
+      try {
+        const saved: unknown = JSON.parse(localStorage.getItem('arcade-favorites') || '[]')
+        if (Array.isArray(saved))
+          setFavorites(saved.filter((id): id is string => typeof id === 'string'))
+      } catch {
+        /* preferences are optional */
+      }
+    })
+  }, [connect])
 
   useEffect(() => {
     if (game || panel) dialog.current?.showModal()
@@ -118,8 +130,9 @@ export function Arcade() {
     } catch (error) {
       try {
         setState((await casino()).state)
+        setService('ready')
       } catch {
-        /* retain known balance */
+        setService('unavailable')
       }
       throw error
     }
@@ -185,16 +198,26 @@ export function Arcade() {
         </button>
         <div className="top-actions">
           <span className="network">
-            <i /> <span>Stellar Testnet</span>
+            <span>Stellar Testnet</span>
           </span>
           <button
             className="balance"
             onClick={() => navigate('activity')}
-            aria-label={state ? xlm(state.demo) + ' XLM demo balance' : 'Demo balance'}
+            aria-label={
+              service === 'ready' && state ? xlm(state.demo) + ' XLM demo balance' : undefined
+            }
           >
             <Coins size={17} />
             <span>
-              {state ? xlm(state.demo) : '–'} <small>XLM</small>
+              {service === 'ready' && state ? (
+                <>
+                  {xlm(state.demo)} <small>XLM</small>
+                </>
+              ) : service === 'unavailable' ? (
+                'Unavailable'
+              ) : (
+                'Loading…'
+              )}
             </span>
             <small className="demo-label">DEMO</small>
           </button>
@@ -245,9 +268,9 @@ export function Arcade() {
         </div>
       </aside>
       <main id="main" className="workspace">
-        {issue && (
+        {service === 'unavailable' && view !== 'sports' && (
           <p className="notice" role="alert">
-            {issue} <button onClick={() => window.location.reload()}>Reload</button>
+            Service unavailable. <button onClick={() => void connect()}>Retry connection</button>
           </p>
         )}
         {view === 'lobby' ? (
@@ -392,7 +415,7 @@ export function Arcade() {
             </section>
           </>
         ) : view === 'sports' ? (
-          <Sportsbook state={state} act={act} />
+          <Sportsbook state={state} act={act} service={service} reconnect={connect} />
         ) : (
           <section className="activity">
             <p className="eyebrow">
@@ -403,13 +426,29 @@ export function Arcade() {
               <div>
                 <span>Demo balance</span>
                 <strong>
-                  {state ? xlm(state.demo) : '–'} <small>XLM</small>
+                  {service === 'ready' && state ? (
+                    <>
+                      {xlm(state.demo)} <small>XLM</small>
+                    </>
+                  ) : service === 'unavailable' ? (
+                    'Unavailable'
+                  ) : (
+                    'Loading…'
+                  )}
                 </strong>
               </div>
               <div>
                 <span>Stellar Testnet balance</span>
                 <strong>
-                  {state ? xlm(state.testnet) : '–'} <small>XLM</small>
+                  {service === 'ready' && state ? (
+                    <>
+                      {xlm(state.testnet)} <small>XLM</small>
+                    </>
+                  ) : service === 'unavailable' ? (
+                    'Unavailable'
+                  ) : (
+                    'Loading…'
+                  )}
                 </strong>
               </div>
             </div>
@@ -468,8 +507,17 @@ export function Arcade() {
           <button className="icon-button close-dialog" onClick={close} aria-label="Close dialog">
             <X size={21} />
           </button>
-          {game && <Play key={game.id} game={game} state={state} act={act} />}
-          {panel === 'wallet' && <Vault state={state} act={act} />}
+          {game && (
+            <Play
+              key={game.id}
+              game={game}
+              state={service === 'ready' ? state : undefined}
+              act={act}
+            />
+          )}
+          {panel === 'wallet' && (
+            <Vault state={service === 'ready' ? state : undefined} act={act} />
+          )}
           {panel === 'help' && (
             <section className="help">
               <p className="eyebrow">
@@ -493,13 +541,14 @@ export function Arcade() {
               </p>
               <button
                 className="button outlined"
-                disabled={state?.paused || pausing || !state}
+                disabled={state?.paused || pausing || service !== 'ready'}
                 onClick={async () => {
+                  setPauseIssue('')
                   setPausing(true)
                   try {
                     await act({ action: 'pause' })
                   } catch (error) {
-                    setIssue((error as Error).message)
+                    setPauseIssue((error as Error).message)
                   } finally {
                     setPausing(false)
                   }
@@ -507,6 +556,7 @@ export function Arcade() {
               >
                 {state?.paused ? 'Wagering paused' : 'Pause demo wagering'}
               </button>
+              {pauseIssue && <p role="alert">{pauseIssue}</p>}
             </section>
           )}
         </div>
