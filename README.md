@@ -101,7 +101,8 @@ Provider score corrections are shown with the time they were observed.
 The contracts checkout can verify the payout offline and compare the ticket
 with the provider's current result.
 
-The Worldwide fixtures section shows upcoming matches from the optional
-TheSportsDB feed. Sports filters follow the available schedule, kickoff times
-use your local timezone, and teams display their provider badges or initials
-when an image is missing.
+When TheSportsDB is enabled, the sportsbook shows pre-match XLM demo markets
+on supported upcoming fixtures. The schedule rolls over daily in UTC. Kickoff
+times appear in your local timezone, and teams display provider badges or
+initials. Demo odds are fixed at placement and tickets settle using the
+provider's recorded final score. Provider coverage varies by plan.
