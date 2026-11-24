@@ -2221,3 +2221,95 @@ dialog::backdrop {
 .dice-arena .dice-track {
   width: 100%;
 }
+
+.lobby-masthead .hero {
+  min-height: clamp(230px, 23vw, 290px);
+}
+.lobby-masthead .hero-copy {
+  padding-block: 20px;
+}
+.lobby-masthead .hero h1 {
+  font-size: clamp(2.2rem, 4vw, 3.8rem);
+}
+.lobby-masthead .hero-description {
+  margin-block: 10px 14px;
+}
+.lobby-masthead .feature-card {
+  min-height: 82px;
+}
+.sports-hero {
+  padding: clamp(16px, 2vw, 28px);
+}
+.sports-hero h1 {
+  font-size: clamp(2rem, 4vw, 3.5rem);
+}
+.fixture {
+  padding: 11px 13px;
+}
+.mobile-slip-trigger {
+  display: none;
+}
+.mobile-slip-sheet {
+  position: fixed;
+  inset: auto 0 0;
+  width: 100%;
+  max-width: none;
+  max-height: 85dvh;
+  margin: 0;
+  padding: 0 0 env(safe-area-inset-bottom);
+  background: #151322;
+  color: inherit;
+  border: 0;
+  border-radius: 16px 16px 0 0;
+}
+.mobile-slip-sheet::backdrop {
+  background: #080612b0;
+}
+.slip-close {
+  margin-bottom: 8px;
+}
+@media (min-width: 881px) {
+  .sports-side {
+    position: sticky;
+    top: calc(var(--bar-height) + 12px);
+    max-height: calc(100dvh - var(--bar-height) - 24px);
+    overflow: auto;
+  }
+}
+@media (max-width: 880px) {
+  .mobile-slip-trigger {
+    display: inline-flex;
+  }
+}
+
+.daily-fixtures,
+.daily-market-title {
+  margin-bottom: 16px;
+}
+.daily-fixtures > .muted {
+  margin: 4px 0 10px;
+}
+.fixture-teams {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 8px;
+  font-weight: 650;
+}
+.fixture-teams > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.fixture-badge {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  border-radius: 5px;
+  background: #272138;
+  font-size: 0.7rem;
+}

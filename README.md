@@ -2,6 +2,25 @@
 
 The Next.js frontend serves nine casino games and a simulated sportsbook. Every stake and return is shown in XLM. The wallet connects to Stellar Testnet through Freighter and displays its balance separately from demo credits.
 
+## How the app fits together
+
+```mermaid
+flowchart LR
+    Browser["Lobby · Wallet · Sportsbook · Activity"] --> Relay["Next.js API relay"]
+    Relay --> Backend["Casino backend · SQLite"]
+    Browser <--> Freighter["Freighter / Varial"]
+    Backend --> Horizon["Stellar Testnet Horizon"]
+    Backend --> Provider["Optional football data feed"]
+```
+
+| Screen | What it shows |
+| --- | --- |
+| Lobby | Nine casino games, game search, and favorites |
+| Wallet | Demo credits, credited Testnet XLM, connected wallet balance, and transfer history |
+| Sportsbook | Fixtures, quoted simulated odds, bet slip, and downloadable settled tickets |
+| Activity | Player ledger, downloadable Dice receipts, and passkey account recovery |
+| Operator | Treasury reconciliation, pending transfer recovery, and observed football score revisions |
+
 ## Start locally
 
 Use Node.js 24. Start the sibling [backend](https://github.com/Remitpulse/backend/tree/stellar-casino-milestone) on port 4010, then run:
@@ -12,6 +31,14 @@ npm run dev
 ```
 
 Open `http://localhost:3000`. Set `CASINO_BACKEND_URL` for a different backend address. Set `CASINO_PUBLIC_ORIGIN` on both services to the exact public HTTPS origin when deploying behind a proxy. Use the same origin for passkey enrollment and sign-in.
+
+| Frontend variable | Purpose |
+| --- | --- |
+| `CASINO_BACKEND_URL` | Backend relay target, defaults to `http://127.0.0.1:4010` |
+| `CASINO_PUBLIC_ORIGIN` | Exact public origin for relay origin checks and matching backend passkeys |
+| `CASINO_STANDALONE` | Set to `1` for a Next.js standalone build |
+
+For wallet testing, open the site in a desktop browser with Freighter (Varial) installed and unlocked. Select Stellar Testnet, connect, and confirm that the address and network match the display before signing. Passkey enrollment and recovery use the same site origin.
 
 ## Games
 
@@ -27,7 +54,7 @@ Open `http://localhost:3000`. Set `CASINO_BACKEND_URL` for a different backend a
 | Wheel | Spin a twelve-segment wheel with six blank segments. |
 | Baccarat | Back Player, Banker or Tie and see both hands dealt from the server result. |
 
-Game tables show wager presets, exact XLM returns and the most recent settled outcomes available in your activity ledger. The sportsbook offers fictional football, basketball and tennis fixtures with quoted odds and a single-selection ticket per fixture.
+Game tables show wager presets, exact XLM returns and the most recent settled outcomes available in your activity ledger. The sportsbook offers simulated fixtures by default. With the backend football provider configured, it displays real football fixtures alongside simulated basketball and tennis. The quoted odds and wagers are simulated.
 
 ## Verify and deploy
 
@@ -73,3 +100,8 @@ Open **Your tickets** to review the settlement and download its receipt.
 Provider score corrections are shown with the time they were observed.
 The contracts checkout can verify the payout offline and compare the ticket
 with the provider's current result.
+
+The Worldwide fixtures section shows upcoming matches from the optional
+TheSportsDB feed. Sports filters follow the available schedule, kickoff times
+use your local timezone, and teams display their provider badges or initials
+when an image is missing.
