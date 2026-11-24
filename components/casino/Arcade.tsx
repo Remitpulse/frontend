@@ -25,7 +25,7 @@ import type { DiceProof } from '@/lib/casino/dice-proof'
 import { xlm } from '@/lib/casino/money'
 import { Passkeys } from './Passkeys'
 import { Play } from './Play'
-import { Sportsbook, type SportsMarket } from './Sportsbook'
+import { Sportsbook, type DailySchedule, type SportsMarket } from './Sportsbook'
 import { DiceReceipt } from './DiceReceipt'
 import { Vault } from './Vault'
 
@@ -44,6 +44,7 @@ export type Result = {
   walletBalance?: { funded: boolean; stroops: string }
   options?: unknown
   sports?: SportsMarket
+  schedule?: DailySchedule
   board?: number[]
   hand?: {
     player: number[]

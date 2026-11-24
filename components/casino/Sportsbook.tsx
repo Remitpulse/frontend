@@ -14,6 +14,8 @@ type Event = {
   league: string
   home: string
   away: string
+  homeBadge?: string
+  awayBadge?: string
   starts: number
   settles: number
   options: Option[]
@@ -38,6 +40,33 @@ export type SportsMarket = {
   time: number
   footballStatus?: 'simulated' | 'unavailable' | 'current'
 }
+export type DailySchedule = {
+  status: 'disabled' | 'unavailable' | 'partial' | 'current'
+  fixtures: (Pick<Event, 'id' | 'sport' | 'league' | 'home' | 'away' | 'starts'> & {
+    homeBadge?: string
+    awayBadge?: string
+  })[]
+}
+
+function TeamBadge({ name, src }: { name: string; src?: string }) {
+  const [failed, setFailed] = useState(false)
+  return src && !failed ? (
+    // The provider supplies small badge images from CSP-allowlisted hosts.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      className="fixture-badge"
+      src={src}
+      alt=""
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  ) : (
+    <span className="fixture-badge" aria-hidden="true">
+      {name.trim().slice(0, 2).toUpperCase()}
+    </span>
+  )
+}
+
 const filters = ['All sports', 'Football', 'Basketball', 'Tennis']
 const odds = (value: number) => (value / 100).toFixed(2)
 
@@ -52,6 +81,8 @@ export function Sportsbook({
   state?: CasinoState
   act: (input: Record<string, unknown>) => Promise<Result>
 }) {
+  const [schedule, setSchedule] = useState<DailySchedule>()
+  const [scheduleRetry, setScheduleRetry] = useState(0)
   const [market, setMarket] = useState<SportsMarket>()
   const [filter, setFilter] = useState('All sports')
   const [pick, setPick] = useState<{ event: Event; option: Option }>()
@@ -99,6 +130,30 @@ export function Sportsbook({
       window.clearInterval(clock)
     }
   }, [ready, act, refreshVersion])
+
+  useEffect(() => {
+    if (!ready) return
+    let active = true
+    let pending = false
+    async function refreshSchedule() {
+      if (pending) return
+      pending = true
+      try {
+        const { schedule } = await act({ action: 'sports-schedule' })
+        if (active) setSchedule(schedule)
+      } catch {
+        if (active) setSchedule({ status: 'unavailable', fixtures: [] })
+      } finally {
+        pending = false
+      }
+    }
+    void refreshSchedule()
+    const timer = window.setInterval(refreshSchedule, 60_000)
+    return () => {
+      active = false
+      window.clearInterval(timer)
+    }
+  }, [ready, act, scheduleRetry])
 
   const latest = market?.events.find((event) => event.id === pick?.event.id)
   const taken = market?.tickets.some((ticket) => ticket.event === pick?.event.id)
@@ -148,6 +203,12 @@ export function Sportsbook({
   }
 
   const events = market?.events.filter((event) => filter === 'All sports' || event.sport === filter)
+  const scheduled = schedule?.fixtures.filter((fixture) => fixture.starts > now) ?? []
+  const sportsFilters = [...new Set([...filters, ...scheduled.map((fixture) => fixture.sport)])]
+  if (!sportsFilters.includes(filter)) sportsFilters.push(filter)
+  const dailyFixtures = scheduled.filter(
+    (fixture) => filter === 'All sports' || fixture.sport === filter,
+  )
   const footballUnavailable =
     (filter === 'All sports' || filter === 'Football') && market?.footballStatus === 'unavailable'
   const betSlip = (
@@ -238,12 +299,75 @@ export function Sportsbook({
       <div className="sports-layout">
         <div className="sports-markets">
           <div className="categories" aria-label="Sports filters">
-            {filters.map((sport) => (
+            {sportsFilters.map((sport) => (
               <button key={sport} aria-pressed={filter === sport} onClick={() => setFilter(sport)}>
                 {sport}
               </button>
             ))}
           </div>
+          {schedule && schedule.status !== 'disabled' && (
+            <section className="daily-fixtures" aria-label="Worldwide fixtures">
+              <h2>Worldwide fixtures</h2>
+              <p className="muted">
+                Upcoming fixtures for today and tomorrow in UTC. Kickoff times are local.
+              </p>
+              {(schedule.status === 'unavailable' || schedule.status === 'partial') && (
+                <p className="notice" role="status">
+                  {schedule.status === 'partial'
+                    ? 'Some fixtures are unavailable.'
+                    : 'Worldwide fixtures unavailable.'}{' '}
+                  <button onClick={() => setScheduleRetry((value) => value + 1)}>
+                    Retry schedule
+                  </button>
+                </p>
+              )}
+              {dailyFixtures.length === 0 && schedule.status === 'current' && (
+                <p className="empty">No upcoming fixtures match this sport.</p>
+              )}
+              <ul className="fixture-list">
+                {dailyFixtures.map((fixture) => (
+                  <li className="fixture" key={fixture.id}>
+                    <div className="fixture-meta">
+                      <span>
+                        {fixture.sport} · {fixture.league}
+                      </span>
+                      <time dateTime={new Date(fixture.starts).toISOString()}>
+                        {new Date(fixture.starts).toLocaleString([], {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </time>
+                    </div>
+                    <div className="fixture-teams">
+                      <span>
+                        <TeamBadge
+                          key={fixture.homeBadge}
+                          name={fixture.home}
+                          src={fixture.homeBadge}
+                        />
+                        {fixture.home}
+                      </span>
+                      <small>vs</small>
+                      <span>
+                        <TeamBadge
+                          key={fixture.awayBadge}
+                          name={fixture.away}
+                          src={fixture.awayBadge}
+                        />
+                        {fixture.away}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <small>Schedule and badges by TheSportsDB</small>
+            </section>
+          )}
+          {schedule && schedule.status !== 'disabled' && (
+            <h2 className="daily-market-title">Demo betting markets</h2>
+          )}
           {fixturesUnavailable && (
             <p className="notice" role="status">
               Fixtures unavailable.{' '}
@@ -291,8 +415,16 @@ export function Sportsbook({
                         })}
                       </time>
                     </div>
-                    <h2>
-                      {event.home} <span>vs</span> {event.away}
+                    <h2 className="fixture-teams">
+                      <span>
+                        <TeamBadge key={event.homeBadge} name={event.home} src={event.homeBadge} />
+                        {event.home}
+                      </span>
+                      <small>vs</small>
+                      <span>
+                        <TeamBadge key={event.awayBadge} name={event.away} src={event.awayBadge} />
+                        {event.away}
+                      </span>
                     </h2>
                     <div
                       className="odds-grid"

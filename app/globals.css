@@ -2281,3 +2281,35 @@ dialog::backdrop {
     display: inline-flex;
   }
 }
+
+.daily-fixtures,
+.daily-market-title {
+  margin-bottom: 16px;
+}
+.daily-fixtures > .muted {
+  margin: 4px 0 10px;
+}
+.fixture-teams {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 8px;
+  font-weight: 650;
+}
+.fixture-teams > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.fixture-badge {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  border-radius: 5px;
+  background: #272138;
+  font-size: 0.7rem;
+}
