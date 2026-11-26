@@ -106,3 +106,10 @@ on supported upcoming fixtures. The schedule rolls over daily in UTC. Kickoff
 times appear in your local timezone, and teams display provider badges or
 initials. Demo odds are fixed at placement and tickets settle using the
 provider's recorded final score. Provider coverage varies by plan.
+
+## Related repositories
+
+- [Casino and sportsbook backend](https://github.com/Remitpulse/backend) owns
+  account balances, wager settlement, and Stellar Testnet transfers.
+- [Stellar Testnet treasury toolkit](https://github.com/Remitpulse/contracts)
+  verifies native XLM receipts and checks reconciliation records offline.
